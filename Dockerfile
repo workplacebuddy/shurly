@@ -39,6 +39,9 @@ RUN cargo build --features=$SHURLY_FEATURES --release
 # Lean, mean, image machine
 FROM debian:buster-slim as runtime
 
+# It's us
+LABEL org.opencontainers.image.source https://github.com/workplacebuddy/shurly
+
 # Just the Shurly binary
 COPY --from=builder /usr/src/shurly/target/release/shurly /usr/local/bin/shurly
 
