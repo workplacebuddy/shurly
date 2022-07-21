@@ -1,0 +1,36 @@
+version: '3'
+
+networks:
+    shurly-network:
+        driver: bridge
+
+volumes:
+    the-data: ~
+
+services:
+    shurly:
+        restart: always
+        build:
+            context: .
+            dockerfile: ./Dockerfile
+        networks:
+            - shurly-network
+        ports:
+            - "6000:${PORT-6000}"
+        environment:
+            DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD-verysecret}@the-data:5432/shurly
+            JWT_SECRET: ${JWT_SECRET}
+            PORT: ${PORT}
+    the-data:
+        image: postgres:14-bullseye
+        restart: always
+        networks:
+            - shurly-network
+        volumes:
+            - the-data:/var/lib/postgresql/data:cached
+        ports:
+            - "6001:5432"
+        environment:
+            POSTGRES_DB: shurly
+            POSTGRES_USER: shurly
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD-verysecret}

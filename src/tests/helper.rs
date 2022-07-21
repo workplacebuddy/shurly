@@ -1,0 +1,257 @@
+use axum::body::Body;
+use axum::body::Bytes;
+use axum::http::header::AUTHORIZATION;
+use axum::http::header::CONTENT_TYPE;
+use axum::http::header::LOCATION;
+use axum::http::Method;
+use axum::http::Request;
+use axum::http::StatusCode;
+use axum::Router;
+use serde_json::Map;
+use serde_json::Value;
+use tower::util::ServiceExt;
+use tower::Service;
+use uuid::Uuid;
+
+use crate::setup_app;
+
+/// Setup the Shurly app
+///
+/// Inject some environment variables to match our tests
+pub async fn setup_test_app() -> Router {
+    std::env::set_var("INITIAL_USERNAME", "admin");
+    std::env::set_var("INITIAL_PASSWORD", "verysecret");
+    std::env::set_var("JWT_SECRET", "verysecret");
+
+    setup_app().await.unwrap()
+}
+
+pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri(format!("/{}", slug))
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+
+    let status_code = response.status();
+    let headers = response.headers();
+
+    let location = headers.get(LOCATION);
+
+    (
+        status_code,
+        location.map(|header| header.to_str().unwrap().to_string()),
+    )
+}
+
+pub async fn login_with_password(app: &mut Router, password: &str) -> String {
+    let mut payload = Map::new();
+    payload.insert("username".to_string(), Value::String("admin".to_string()));
+    payload.insert("password".to_string(), Value::String(password.to_string()));
+
+    let request = Request::builder()
+        .method(Method::POST)
+        .uri("/api/users/token")
+        .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    assert_eq!(StatusCode::OK, status_code);
+
+    get_access_token(&body)
+}
+
+pub async fn login(app: &mut Router) -> String {
+    login_with_password(app, "verysecret").await
+}
+
+pub async fn maybe_change_password(
+    app: &mut Router,
+    access_token: &str,
+    current_password: &str,
+    password: &str,
+) -> (StatusCode, Option<String>, Option<String>) {
+    let mut payload = Map::new();
+    payload.insert(
+        "currentPassword".to_string(),
+        Value::String(current_password.to_string()),
+    );
+    payload.insert("password".to_string(), Value::String(password.to_string()));
+
+    let request = Request::builder()
+        .method(Method::PUT)
+        .uri("/api/users/me/password")
+        .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+        .header(AUTHORIZATION, access_token)
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_access_token(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn list_destinations(app: &mut Router, access_token: &str) -> StatusCode {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri("/api/destinations")
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    response.status()
+}
+
+pub async fn maybe_create_destination_with_is_permanent(
+    app: &mut Router,
+    access_token: &str,
+    slug: &str,
+    url: &str,
+    is_permanent: bool,
+) -> (StatusCode, Option<Uuid>, Option<String>) {
+    let mut payload = Map::new();
+    payload.insert("slug".to_string(), Value::String(slug.to_string()));
+    payload.insert("url".to_string(), Value::String(url.to_string()));
+    payload.insert("isPermanent".to_string(), Value::Bool(is_permanent));
+
+    let request = Request::builder()
+        .method(Method::POST)
+        .uri("/api/destinations")
+        .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+        .header(AUTHORIZATION, access_token)
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::CREATED {
+            Some(get_id(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn maybe_create_destination(
+    app: &mut Router,
+    access_token: &str,
+    slug: &str,
+    url: &str,
+) -> (StatusCode, Option<Uuid>, Option<String>) {
+    maybe_create_destination_with_is_permanent(app, access_token, slug, url, false).await
+}
+
+pub async fn maybe_update_destination(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    url: &str,
+) -> (StatusCode, Option<String>) {
+    let mut payload = Map::new();
+    payload.insert("url".to_string(), Value::String(url.to_string()));
+    payload.insert("isPermanent".to_string(), Value::Bool(false));
+
+    let request = Request::builder()
+        .method(Method::PATCH)
+        .uri(format!("/api/destinations/{}", destination_id))
+        .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+        .header(AUTHORIZATION, access_token)
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn myabe_delete_destination(
+    app: &mut Router,
+    access_token: &str,
+    id: &Uuid,
+) -> (StatusCode, Option<String>) {
+    let request = Request::builder()
+        .method(Method::DELETE)
+        .uri(format!("/api/destinations/{}", id))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+fn get_id(body: &Bytes) -> Uuid {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]["id"]
+        .as_str()
+        .map(Uuid::parse_str)
+        .unwrap()
+        .unwrap()
+}
+
+fn get_error_message(body: &Bytes) -> String {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["error"]
+        .as_str()
+        .map(ToString::to_string)
+        .unwrap()
+}
+
+fn get_access_token(body: &Bytes) -> String {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]["access_token"]
+        .as_str()
+        .map(|access_token| format!("Bearer {access_token}"))
+        .unwrap()
+}
