@@ -15,6 +15,13 @@ use uuid::Uuid;
 
 use crate::setup_app;
 
+pub struct User {
+    pub id: Uuid,
+    pub username: String,
+    pub role: String,
+    pub password: Option<String>,
+}
+
 /// Setup the Shurly app
 ///
 /// Inject some environment variables to match our tests
@@ -232,6 +239,192 @@ pub async fn myabe_delete_destination(
             None
         },
     )
+}
+
+pub async fn current_user(app: &mut Router, access_token: &str) -> (StatusCode, Option<User>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri("/api/users/me")
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_user(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn single_user(
+    app: &mut Router,
+    access_token: &str,
+    id: &Uuid,
+) -> (StatusCode, Option<User>, Option<String>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri(format!("/api/users/{}", id))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_user(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST || status_code == StatusCode::NOT_FOUND {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn maybe_delete_user(
+    app: &mut Router,
+    access_token: &str,
+    id: &Uuid,
+) -> (StatusCode, Option<String>) {
+    let request = Request::builder()
+        .method(Method::DELETE)
+        .uri(format!("/api/users/{}", id))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::BAD_REQUEST || status_code == StatusCode::NOT_FOUND {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn list_users(app: &mut Router, access_token: &str) -> (StatusCode, Option<Vec<User>>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri("/api/users")
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_users(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn maybe_create_user_with_password(
+    app: &mut Router,
+    access_token: &str,
+    username: &str,
+    role: &str,
+    password: Option<&str>,
+) -> (StatusCode, Option<User>, Option<String>) {
+    let mut payload = Map::new();
+    payload.insert("username".to_string(), Value::String(username.to_string()));
+    payload.insert("role".to_string(), Value::String(role.to_string()));
+
+    if let Some(password) = password {
+        payload.insert("password".to_string(), Value::String(password.to_string()));
+    }
+
+    let request = Request::builder()
+        .method(Method::POST)
+        .uri("/api/users")
+        .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+        .header(AUTHORIZATION, access_token)
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::CREATED {
+            Some(get_user(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn maybe_create_user(
+    app: &mut Router,
+    access_token: &str,
+    username: &str,
+    role: &str,
+) -> (StatusCode, Option<User>, Option<String>) {
+    maybe_create_user_with_password(app, access_token, username, role, None).await
+}
+
+fn value_to_user(user: &Map<String, Value>) -> User {
+    User {
+        id: user["id"].as_str().map(Uuid::parse_str).unwrap().unwrap(),
+        username: user["username"].as_str().map(ToString::to_string).unwrap(),
+        role: user["role"].as_str().map(ToString::to_string).unwrap(),
+        password: user
+            .get("password")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+    }
+}
+
+fn get_user(body: &Bytes) -> User {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]
+        .as_object()
+        .map(value_to_user)
+        .unwrap()
+}
+
+fn get_users(body: &Bytes) -> Vec<User> {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f.as_object().unwrap())
+        .map(value_to_user)
+        .collect()
 }
 
 fn get_id(body: &Bytes) -> Uuid {

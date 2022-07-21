@@ -26,11 +26,24 @@ use super::JwtKeys;
 use super::PathParameters;
 use super::Success;
 
+/// The user response information
+///
+/// A subset of all the information, ready to be serialized for the outside world
 #[derive(Debug, Serialize)]
 pub struct UserResponse {
+    /// The user ID
     pub id: Uuid,
+
+    /// The username
     pub username: String,
+
+    /// The role of the user
     pub role: Role,
+
+    /// The password, if generated
+    // Password should only be added when newly generated
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub password: Option<String>,
 }
 
 impl UserResponse {
@@ -39,7 +52,15 @@ impl UserResponse {
             id: user.id,
             username: user.username,
             role: user.role,
+            password: None,
         }
+    }
+
+    /// Add a password to the user response
+    ///
+    /// This is explicit extra action to take, to make sure this is really what you want to do
+    fn set_password(&mut self, password: &str) {
+        self.password = Some(password.to_string());
     }
 
     fn from_user_multiple(mut users: Vec<User>) -> Vec<Self> {
@@ -96,13 +117,17 @@ pub async fn list<S: Storage>(
 pub async fn single<S: Storage>(
     Extension(storage): Extension<S>,
     current_user: CurrentUser<S>,
-    PathParameters(user_id): PathParameters<Uuid>,
+    PathParameters(params): PathParameters<HashMap<String, Uuid>>,
 ) -> Result<Success<UserResponse>, Error> {
-    current_user.role.is_allowed(Role::Admin)?;
+    let user = if let Some(user_id) = params.get("user") {
+        current_user.role.is_allowed(Role::Admin)?;
+        get_user(&storage, user_id).await?
+    } else {
+        current_user.role.is_allowed(Role::Manager)?;
+        current_user.deref().clone()
+    };
 
-    get_user(&storage, &user_id)
-        .await
-        .map(|user| Success::ok(UserResponse::from_user(user)))
+    Ok(Success::ok(UserResponse::from_user(user)))
 }
 
 #[derive(Debug, Deserialize)]
@@ -133,7 +158,12 @@ pub async fn create<S: Storage>(
             Err(Error::bad_request("User already exists"))
         }
     } else {
-        let password = form.password.unwrap_or_else(generate);
+        let (is_generated, password) = if let Some(password) = form.password {
+            (false, password)
+        } else {
+            (true, generate())
+        };
+
         let hashed_password = hash(&password);
 
         let values = CreateUserValues {
@@ -150,7 +180,14 @@ pub async fn create<S: Storage>(
 
         audit_trail.register(AuditEntry::CreateUser(&user)).await;
 
-        Ok(Success::created(UserResponse::from_user(user)))
+        let mut response = UserResponse::from_user(user);
+
+        // only add the generated password, its the only time the password is known to anybody
+        if is_generated {
+            response.set_password(&password);
+        }
+
+        Ok(Success::created(response))
     }
 }
 

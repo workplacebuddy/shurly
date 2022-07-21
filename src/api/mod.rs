@@ -32,6 +32,7 @@ pub fn router<S: Storage>() -> Router {
         .route("/", post(users::create::<S>))
         .route("/me/password", put(users::change_password::<S>))
         .route("/:user/password", put(users::change_password::<S>))
+        .route("/me", get(users::single::<S>))
         .route("/:user", get(users::single::<S>))
         .route("/:user", delete(users::delete::<S>));
 
