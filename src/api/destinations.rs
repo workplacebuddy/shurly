@@ -25,7 +25,6 @@ use super::Success;
 pub struct DestinationResponse {
     pub id: Uuid,
     pub slug: String,
-    pub full_url: String,
     pub url: String,
     pub is_permanent: bool,
     pub created_at: NaiveDateTime,
@@ -37,7 +36,6 @@ impl DestinationResponse {
         Self {
             id: destination.id,
             slug: destination.slug,
-            full_url: "".to_string(),
             url: destination.url,
             is_permanent: destination.is_permanent,
             created_at: destination.created_at,
