@@ -1,3 +1,5 @@
+use std::str::Utf8Error;
+
 use axum::headers::UserAgent;
 use axum::http::header::LOCATION;
 use axum::http::HeaderMap;
@@ -7,6 +9,7 @@ use axum::http::Uri;
 use axum::Extension;
 use axum::TypedHeader;
 use axum_client_ip::ClientIp;
+use percent_encoding::percent_decode_str;
 
 use crate::storage::Storage;
 
@@ -17,11 +20,12 @@ pub async fn root<S: Storage>(
     uri: Uri,
 ) -> Result<(StatusCode, HeaderMap), (StatusCode, String)> {
     let slug = uri.path().trim_matches('/');
+    let slug = url_decode_slug(slug).map_err(internal_error)?;
 
     tracing::debug!("Looking for slug: /{slug}");
 
     let destination = storage
-        .find_single_destination_by_slug(slug)
+        .find_single_destination_by_slug(&slug)
         .await
         .map_err(internal_error)?;
 
@@ -71,4 +75,13 @@ where
     E: std::error::Error,
 {
     (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+}
+
+/// URL decode slug
+///
+/// Uses percentage encoding for the decoding, might error in case of invalid UTF-8
+fn url_decode_slug(slug: &str) -> Result<String, Utf8Error> {
+    let decoded = percent_decode_str(slug);
+
+    decoded.decode_utf8().map(|decoded| decoded.to_string())
 }

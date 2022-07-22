@@ -13,7 +13,7 @@ async fn test_destination_delete_is_permanent() {
     let url = "https://www.example.com/";
 
     // create destination
-    let (status_code, destination_id, _) = helper::maybe_create_destination_with_is_permanent(
+    let (status_code, destination, _) = helper::maybe_create_destination_with_is_permanent(
         &mut app,
         &access_token,
         slug,
@@ -22,8 +22,8 @@ async fn test_destination_delete_is_permanent() {
     )
     .await;
     assert_eq!(StatusCode::CREATED, status_code);
-    assert!(destination_id.is_some());
-    let existing_destination_id = destination_id.unwrap();
+    assert!(destination.is_some());
+    let existing_destination_id = destination.unwrap().id;
 
     // check root redirect
     let (status_code, location) = helper::root(&mut app, slug).await;

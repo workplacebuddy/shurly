@@ -14,7 +14,7 @@ async fn test_change_password() {
     let access_token = helper::login_with_password(&mut app, password).await;
 
     // check valid token
-    let status_code = helper::list_destinations(&mut app, &access_token).await;
+    let (status_code, _) = helper::list_destinations(&mut app, &access_token).await;
     assert_eq!(StatusCode::OK, status_code);
 
     // try changing with wrong password
@@ -33,10 +33,10 @@ async fn test_change_password() {
     let new_access_token = new_access_token.unwrap();
 
     // check old token
-    let status_code = helper::list_destinations(&mut app, &access_token).await;
+    let (status_code, _) = helper::list_destinations(&mut app, &access_token).await;
     assert_eq!(StatusCode::FORBIDDEN, status_code);
 
     // check new token
-    let status_code = helper::list_destinations(&mut app, &new_access_token).await;
+    let (status_code, _) = helper::list_destinations(&mut app, &new_access_token).await;
     assert_eq!(StatusCode::OK, status_code);
 }

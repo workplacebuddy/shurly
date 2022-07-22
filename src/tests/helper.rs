@@ -15,11 +15,21 @@ use uuid::Uuid;
 
 use crate::setup_app;
 
+/// Test helper version of User struct
+#[derive(Debug)]
 pub struct User {
     pub id: Uuid,
     pub username: String,
     pub role: String,
     pub password: Option<String>,
+}
+
+/// Test helper version of Destination struct
+#[derive(Debug)]
+pub struct Destination {
+    pub id: Uuid,
+    pub slug: String,
+    pub url: String,
 }
 
 /// Setup the Shurly app
@@ -120,7 +130,37 @@ pub async fn maybe_change_password(
     )
 }
 
-pub async fn list_destinations(app: &mut Router, access_token: &str) -> StatusCode {
+pub async fn single_destination(
+    app: &mut Router,
+    access_token: &str,
+    id: &Uuid,
+) -> (StatusCode, Option<Destination>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri(format!("/api/destinations/{}", id))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_destination(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn list_destinations(
+    app: &mut Router,
+    access_token: &str,
+) -> (StatusCode, Option<Vec<Destination>>) {
     let request = Request::builder()
         .method(Method::GET)
         .uri("/api/destinations")
@@ -129,7 +169,18 @@ pub async fn list_destinations(app: &mut Router, access_token: &str) -> StatusCo
         .unwrap();
 
     let response = app.ready().await.unwrap().call(request).await.unwrap();
-    response.status()
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_destinations(&body))
+        } else {
+            None
+        },
+    )
 }
 
 pub async fn maybe_create_destination_with_is_permanent(
@@ -138,7 +189,7 @@ pub async fn maybe_create_destination_with_is_permanent(
     slug: &str,
     url: &str,
     is_permanent: bool,
-) -> (StatusCode, Option<Uuid>, Option<String>) {
+) -> (StatusCode, Option<Destination>, Option<String>) {
     let mut payload = Map::new();
     payload.insert("slug".to_string(), Value::String(slug.to_string()));
     payload.insert("url".to_string(), Value::String(url.to_string()));
@@ -160,7 +211,7 @@ pub async fn maybe_create_destination_with_is_permanent(
     (
         status_code,
         if status_code == StatusCode::CREATED {
-            Some(get_id(&body))
+            Some(get_destination(&body))
         } else {
             None
         },
@@ -177,7 +228,7 @@ pub async fn maybe_create_destination(
     access_token: &str,
     slug: &str,
     url: &str,
-) -> (StatusCode, Option<Uuid>, Option<String>) {
+) -> (StatusCode, Option<Destination>, Option<String>) {
     maybe_create_destination_with_is_permanent(app, access_token, slug, url, false).await
 }
 
@@ -427,12 +478,39 @@ fn get_users(body: &Bytes) -> Vec<User> {
         .collect()
 }
 
-fn get_id(body: &Bytes) -> Uuid {
-    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]["id"]
-        .as_str()
-        .map(Uuid::parse_str)
+fn value_to_destination(destination: &Map<String, Value>) -> Destination {
+    Destination {
+        id: destination["id"]
+            .as_str()
+            .map(Uuid::parse_str)
+            .unwrap()
+            .unwrap(),
+        slug: destination["slug"]
+            .as_str()
+            .map(ToString::to_string)
+            .unwrap(),
+        url: destination["url"]
+            .as_str()
+            .map(ToString::to_string)
+            .unwrap(),
+    }
+}
+
+fn get_destination(body: &Bytes) -> Destination {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]
+        .as_object()
+        .map(value_to_destination)
         .unwrap()
+}
+
+fn get_destinations(body: &Bytes) -> Vec<Destination> {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]
+        .as_array()
         .unwrap()
+        .iter()
+        .map(|f| f.as_object().unwrap())
+        .map(value_to_destination)
+        .collect()
 }
 
 fn get_error_message(body: &Bytes) -> String {

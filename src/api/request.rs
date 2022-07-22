@@ -20,21 +20,33 @@ use super::Error;
 /// let slug = "/some-slug";
 /// assert_eq!(parse_slug(slug), "some-slug".to_string())
 /// ```
-pub fn parse_slug(slug: &str) -> String {
-    slug.trim_matches('/').to_string()
+pub fn parse_slug(slug: &str) -> Result<String, Error> {
+    let slug = slug.trim_matches('/');
+
+    for ch in slug.chars() {
+        if ch == '?' {
+            return Err(Error::bad_request(r#"Slug can not contain "?""#));
+        }
+
+        if ch == '#' {
+            return Err(Error::bad_request(r##"Slug can not contain "#""##));
+        }
+    }
+
+    Ok(slug.to_string())
 }
 
 /// Parse and validate a URL
 ///
 /// ```rust
 /// let url = "https://www.example.com/";
-/// assert!(parse_slug(slug).is_ok())
+/// assert!(parse_url(url).is_ok())
 /// ```
-pub fn parse_url<I>(raw_url: I) -> Result<Url, Error>
+pub fn parse_url<I>(url: I) -> Result<Url, Error>
 where
     I: AsRef<str>,
 {
-    Url::parse(raw_url.as_ref()).map_err(Error::bad_request)
+    Url::parse(url.as_ref()).map_err(Error::bad_request)
 }
 
 fn parse_json<J>(json: Result<Json<J>, JsonRejection>) -> Result<J, Error> {
@@ -120,13 +132,13 @@ mod tests {
     #[test]
     fn test_parse_slug() {
         let slug = "/some-slug";
-        assert_eq!(parse_slug(slug), "some-slug".to_string());
+        assert_eq!(parse_slug(slug).unwrap(), "some-slug".to_string());
 
         let slug = "some-slug/";
-        assert_eq!(parse_slug(slug), "some-slug".to_string());
+        assert_eq!(parse_slug(slug).unwrap(), "some-slug".to_string());
 
         let slug = "some-slug";
-        assert_eq!(parse_slug(slug), slug.to_string());
+        assert_eq!(parse_slug(slug).unwrap(), slug.to_string());
     }
 
     #[test]

@@ -1,5 +1,6 @@
 mod change_password;
 mod destination;
+mod destination_create;
 mod destination_delete_is_permanent;
 mod destination_update;
 mod destination_update_is_permanent;

@@ -13,11 +13,11 @@ async fn test_destination() {
     let url = "https://www.example.com/";
 
     // create destination
-    let (status_code, destination_id, _) =
+    let (status_code, destination, _) =
         helper::maybe_create_destination(&mut app, &access_token, slug, url).await;
     assert_eq!(StatusCode::CREATED, status_code);
-    assert!(destination_id.is_some());
-    let existing_destination_id = destination_id.unwrap();
+    assert!(destination.is_some());
+    let existing_destination_id = destination.unwrap().id;
 
     // check root redirect
     let (status_code, location) = helper::root(&mut app, slug).await;
@@ -25,10 +25,10 @@ async fn test_destination() {
     assert_eq!(Some(url.to_string()), location);
 
     // try to create with same slug
-    let (status_code, destination_id, error) =
+    let (status_code, destination, error) =
         helper::maybe_create_destination(&mut app, &access_token, slug, url).await;
     assert_eq!(StatusCode::BAD_REQUEST, status_code);
-    assert!(destination_id.is_none());
+    assert!(destination.is_none());
     assert_eq!(Some("Slug already exists".to_string()), error);
 
     // delete destination
@@ -42,10 +42,10 @@ async fn test_destination() {
     assert_eq!(None, location);
 
     // try to create with same slug
-    let (status_code, destination_id, error) =
+    let (status_code, destination, error) =
         helper::maybe_create_destination(&mut app, &access_token, slug, url).await;
     assert_eq!(StatusCode::BAD_REQUEST, status_code);
-    assert!(destination_id.is_none());
+    assert!(destination.is_none());
     assert_eq!(
         Some("Slug already exists and is deleted".to_string()),
         error

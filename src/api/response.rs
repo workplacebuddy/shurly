@@ -65,6 +65,7 @@ where
 }
 
 /// Hold data for a failed API interaction
+#[derive(Debug)]
 pub struct Error {
     status_code: StatusCode,
     message: String,

@@ -95,7 +95,7 @@ pub async fn create<S: Storage>(
 ) -> Result<Success<DestinationResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let slug = parse_slug(&form.slug);
+    let slug = parse_slug(&form.slug)?;
     let url = parse_url(&form.url)?;
 
     let destination = storage

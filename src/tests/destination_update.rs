@@ -14,11 +14,11 @@ async fn test_destination_update() {
     let url_two = "https://www.dummy.com/";
 
     // create destination
-    let (status_code, destination_id, _) =
+    let (status_code, destination, _) =
         helper::maybe_create_destination(&mut app, &access_token, slug, url_one).await;
     assert_eq!(StatusCode::CREATED, status_code);
-    assert!(destination_id.is_some());
-    let existing_destination_id = destination_id.unwrap();
+    assert!(destination.is_some());
+    let existing_destination_id = destination.unwrap().id;
 
     // check root redirect
     let (status_code, location) = helper::root(&mut app, slug).await;
