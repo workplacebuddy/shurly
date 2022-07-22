@@ -255,6 +255,7 @@ Using the `SQLx` CLI adds a couple of nicities to work with migrations.
 
 - Endpoints to expose some statistics, data is already captured
 - Track incoming parameters in `hits`, maybe?
+- Add aliases for destinations, so hits count for the original
 - A somewhat attractive 404 page, or a default destination?
 - Description of all the API endpoints
 
