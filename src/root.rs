@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use axum::headers::UserAgent;
 use axum::http::header::LOCATION;
 use axum::http::HeaderMap;
@@ -73,22 +71,4 @@ where
     E: std::error::Error,
 {
     (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
-}
-
-struct Bla<S: Storage>(PhantomData<S>);
-
-#[axum::async_trait]
-impl<B, S: Storage> axum::extract::FromRequest<B> for Bla<S>
-where
-    B: Send,
-{
-    type Rejection = ();
-
-    async fn from_request(
-        req: &mut axum::extract::RequestParts<B>,
-    ) -> Result<Self, Self::Rejection> {
-        let Extension(_storage) = req.extract::<Extension<S>>().await.map_err(|_| ())?;
-
-        Ok(Bla(PhantomData))
-    }
 }
