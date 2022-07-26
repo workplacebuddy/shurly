@@ -12,12 +12,19 @@ use crate::notes::Note;
 use crate::users::Role;
 use crate::users::User;
 
-#[cfg(not(feature = "postgres"))]
+// Always included memory storage in builds
+//
+// Using the `postgres` feature removed the entire `mod memory` from the
+// build, same if you're using `--all-features` for testing. For now we
+// always include it and allow the unused module, this will properly run
+// clippy and check over the memory storage with `--all-features`.
+//
+// In the future we want something more robust to handle this..
+#[allow(unused_imports)]
 use memory::Memory;
 #[cfg(feature = "postgres")]
 use postgres::Postgres;
 
-#[cfg(not(feature = "postgres"))]
 mod memory;
 #[cfg(feature = "postgres")]
 mod postgres;

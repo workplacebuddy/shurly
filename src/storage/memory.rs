@@ -42,6 +42,7 @@ pub struct Memory {
 
 impl Memory {
     /// Create a new empty Memory storage
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             users: Arc::new(Mutex::new(HashMap::new())),
