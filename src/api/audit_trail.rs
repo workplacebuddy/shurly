@@ -1,3 +1,5 @@
+//! Audit trail service
+
 use std::net::IpAddr;
 
 use axum::async_trait;
@@ -12,17 +14,24 @@ use crate::storage::Storage;
 use super::CurrentUser;
 use super::Error;
 
+/// Audit trail service
 pub struct AuditTrail<S: Storage> {
+    /// Storage in where the trail is saved
     storage: S,
-    user: CurrentUser<S>,
+
+    /// The current user for the audit trail
+    current_user: CurrentUser<S>,
+
+    /// The IP address associated with the audit trail
     ip_address: Option<IpAddr>,
 }
 
 impl<S: Storage> AuditTrail<S> {
+    /// Register an entry on the audit trail
     pub async fn register(&self, entry: AuditEntry<'_>) {
         let result = self
             .storage
-            .register_audit_trail(&self.user, &entry, self.ip_address.as_ref())
+            .register_audit_trail(&self.current_user, &entry, self.ip_address.as_ref())
             .await;
 
         if let Err(err) = result {
@@ -44,7 +53,7 @@ where
             .await
             .map_err(|_| Error::internal_server_error("Could not get a storage pool"))?;
 
-        let user = CurrentUser::from_request(req).await?;
+        let current_user = CurrentUser::from_request(req).await?;
 
         let ip_address = Option::<ClientIp>::from_request(req)
             .await
@@ -53,7 +62,7 @@ where
 
         Ok(AuditTrail {
             storage,
-            user,
+            current_user,
             ip_address,
         })
     }

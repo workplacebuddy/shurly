@@ -1,3 +1,5 @@
+//!Postgres storage
+
 use std::net::IpAddr;
 use std::time::Duration;
 
@@ -25,17 +27,23 @@ use super::Storage;
 use super::UpdateDestinationValues;
 use super::UpdateNoteValues;
 
+/// Migrator to run migrations on startup
 static MIGRATOR: Migrator = sqlx::migrate!();
 
+/// Postgres type for user role
 #[derive(PartialEq, Debug, sqlx::Type)]
 #[sqlx(type_name = "user_role_type")]
 #[sqlx(rename_all = "kebab-case")]
 enum UserRoleType {
+    /// Admin
     Admin,
+
+    /// Manager
     Manager,
 }
 
 impl UserRoleType {
+    /// Create user role type from role
     fn from_role(role: Role) -> Self {
         match role {
             Role::Admin => UserRoleType::Admin,
@@ -43,6 +51,7 @@ impl UserRoleType {
         }
     }
 
+    /// Create role from user role type
     fn to_role(&self) -> Role {
         match self {
             UserRoleType::Admin => Role::Admin,
@@ -51,24 +60,41 @@ impl UserRoleType {
     }
 }
 
+/// Postgres type for audit trail entry type
 #[derive(PartialEq, Debug, sqlx::Type)]
 #[sqlx(type_name = "audit_trail_entry_type")]
 #[sqlx(rename_all = "kebab-case")]
 enum AuditEntryType {
+    /// User is created
     CreateUser,
+
+    /// User has changed password
     ChangePassword,
+
+    /// User is deleted
     DeleteUser,
 
+    /// Destination is created
     CreateDestination,
+
+    /// Destination is updated
     UpdateDestination,
+
+    /// Destination is deleted
     DeleteDestination,
 
+    /// Note is deleted
     CreateNote,
+
+    /// Note is updated
     UpdateNote,
+
+    /// Note is deleted
     DeleteNote,
 }
 
 impl AuditEntryType {
+    /// Create audit entry type type from audit entry
     fn from_audit_entry(entry: &AuditEntry) -> Self {
         match entry {
             AuditEntry::CreateUser(_) => Self::CreateUser,
@@ -86,12 +112,19 @@ impl AuditEntryType {
     }
 }
 
+/// Postgres storage
 #[derive(Clone)]
 pub struct Postgres {
+    /// Pool of connections
     connection_pool: PgPool,
 }
 
 impl Postgres {
+    /// Create Postgres storage
+    ///
+    /// Use the `DATABASE_URL` environment variable
+    ///
+    /// Migrations will be run
     pub async fn new() -> Self {
         let database_connection_string = std::env::var("DATABASE_URL").expect("Valid DATABASE_URL");
 
@@ -112,18 +145,35 @@ impl Postgres {
     }
 }
 
+/// Postgres version of user
 struct PostgresUser {
+    /// User ID
     id: Uuid,
+
+    /// Sessions ID
     session_id: Uuid,
+
+    /// Username
     username: String,
+
+    /// Hashed password
     hashed_password: String,
+
+    /// User role
     role: UserRoleType,
+
+    /// Creation date
     created_at: NaiveDateTime,
+
+    /// Last updated at
     updated_at: NaiveDateTime,
+
+    /// Deleted at
     deleted_at: Option<NaiveDateTime>,
 }
 
 impl User {
+    /// Create user from postgres version
     fn from_postgres_user(user: PostgresUser) -> Self {
         Self {
             id: user.id,
@@ -137,10 +187,12 @@ impl User {
         }
     }
 
+    /// Maybe create user from postgres version
     fn from_postgres_user_optional(user: Option<PostgresUser>) -> Option<Self> {
         user.map(Self::from_postgres_user)
     }
 
+    /// Create multiple user from postgres version
     fn from_postgres_user_multiple(mut users: Vec<PostgresUser>) -> Vec<Self> {
         users
             .drain(..)
@@ -619,6 +671,7 @@ impl Storage for Postgres {
     }
 }
 
+/// Convert `SQLx` to storage connection error
 fn connection_error<E>(err: E) -> Error
 where
     E: std::error::Error,

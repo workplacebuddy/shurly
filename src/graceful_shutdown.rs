@@ -1,5 +1,10 @@
+//! Graceful shutdown
+
 use tokio::signal;
 
+/// Handler for graceful shutdown
+///
+/// Will listen to Ctrl+C to and initiate a shutdown
 pub async fn handler() {
     let ctrl_c = async {
         signal::ctrl_c().await.expect("Valid CTRL+C handler");

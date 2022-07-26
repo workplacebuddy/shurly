@@ -1,8 +1,9 @@
 #![forbid(unsafe_code)]
+#![forbid(clippy::missing_docs_in_private_items)]
 #![warn(clippy::pedantic)]
 // easier to use when using the functions as callback of foreign functions
 #![allow(clippy::needless_pass_by_value)]
-// #![doc = include_str!("../README.md")]
+#![doc = include_str!("../README.md")]
 
 use std::net::SocketAddr;
 
@@ -33,7 +34,10 @@ mod tests;
 mod users;
 mod utils;
 
+/// Default `RUST_LOG` value
 const DEFAULT_RUST_LOG: &str = "shurly=debug,tower_http=debug";
+
+/// Default address Shurly binds to
 const DEFAULT_ADDRESS: &str = "0.0.0.0:6000";
 
 #[tokio::main]
@@ -81,10 +85,12 @@ fn create_router<S: Storage>(storage: S) -> Router {
         .layer(Extension(jwt_keys))
 }
 
+/// Setup the environment (variables) in which Shurly runs
 fn setup_environment() {
     dotenv::dotenv().ok();
 }
 
+/// Setup the tracing subscriber for logging
 fn setup_tracing() {
     use tracing_subscriber::fmt;
     use tracing_subscriber::registry;
@@ -98,6 +104,7 @@ fn setup_tracing() {
         .init();
 }
 
+/// Setup the JWT keys for encoding/decoding
 fn setup_jwt_keys() -> JwtKeys {
     use crate::password::generate;
 
@@ -110,6 +117,7 @@ fn setup_jwt_keys() -> JwtKeys {
     JwtKeys::new(jwt_secret.as_bytes())
 }
 
+/// Setup the address Shurly will bind to
 fn setup_address() -> Result<SocketAddr> {
     let mut address =
         env_var_or_else("ADDRESS", || String::from(DEFAULT_ADDRESS)).parse::<SocketAddr>()?;

@@ -1,3 +1,5 @@
+//! All API endpoint setup
+
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::patch;
@@ -25,6 +27,7 @@ mod request;
 mod response;
 mod users;
 
+/// Get the Axum router for all API routes
 pub fn router<S: Storage>() -> Router {
     let users = Router::new()
         .route("/token", post(users::token::<S>))

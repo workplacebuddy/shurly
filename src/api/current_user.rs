@@ -1,3 +1,7 @@
+//! Current user service
+//!
+//! Get the current user from the request based on the Authorization header
+
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::Arc;
@@ -19,13 +23,18 @@ use crate::api::Error;
 use crate::storage::Storage;
 use crate::users::User;
 
+/// The keys used for encoding/decoding JWT tokens
 #[derive(Clone)]
 pub struct JwtKeys {
+    /// The encoding key
     encoding: EncodingKey,
+
+    /// The decoding key
     decoding: DecodingKey,
 }
 
 impl JwtKeys {
+    /// Create new encoding/decoding keys, derived from a secret
     pub fn new(secret: &[u8]) -> Self {
         Self {
             encoding: EncodingKey::from_secret(secret),
@@ -34,21 +43,34 @@ impl JwtKeys {
     }
 }
 
+/// The JWT claims to identifies a user
 #[derive(Debug, Deserialize, Serialize)]
 struct Claims {
+    /// The user ID
     sub: Uuid,
+
+    /// In how many seconds does the token expire
     exp: i64,
+
+    /// A sessions ID, used to expire/invalidate tokens before the expiration date
     jti: Uuid,
 }
 
+/// Token information served to the user
 #[derive(Debug, Serialize)]
 pub struct Token {
+    /// Type of the token: Bearer
     token_type: String,
+
+    /// In how many seconds does the token expire
     expires_in: i64,
+
+    /// The access token to provide to follow up requests in the Authorization header
     access_token: String,
 }
 
 impl Token {
+    /// Create a new token response
     fn new(access_token: String, expires_in: i64) -> Self {
         Self {
             token_type: "Bearer".to_string(),
@@ -58,13 +80,18 @@ impl Token {
     }
 }
 
+/// Current user service
 #[derive(Clone)]
 pub struct CurrentUser<S: Storage> {
+    /// The actual user
     user: Arc<User>,
+
+    /// The storage the user came from, as some phantom data
     storage: PhantomData<S>,
 }
 
 impl<S: Storage> CurrentUser<S> {
+    /// Create the current user from a user
     fn new(user: User) -> Self {
         Self {
             user: Arc::new(user),
@@ -81,6 +108,7 @@ impl<S: Storage> Deref for CurrentUser<S> {
     }
 }
 
+/// Generate a token for the outside world for a given user
 pub fn generate_token(jwt_keys: &JwtKeys, user: &User) -> Result<Token, Error> {
     use jsonwebtoken::encode;
     use jsonwebtoken::Header;
@@ -142,6 +170,7 @@ where
             .map_err(|_| Error::forbidden("Could not find user"))?;
 
         if let Some(user) = user {
+            // mechanism to invalidate JWT tokens
             if claims.jti != user.session_id {
                 return Err(Error::forbidden("Token expired"));
             }

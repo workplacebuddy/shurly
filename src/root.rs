@@ -1,3 +1,7 @@
+//! The root!
+//!
+//! The most important part of Shurly, the actual redirect logic
+
 use std::str::Utf8Error;
 
 use axum::headers::UserAgent;
@@ -13,6 +17,11 @@ use percent_encoding::percent_decode_str;
 
 use crate::storage::Storage;
 
+/// The root!
+///
+/// All wildcard requests end up in this function.
+///
+/// A lookup in storage will be done looking for the right slug, based on the path
 pub async fn root<S: Storage>(
     ip_address: Option<ClientIp>,
     user_agent: Option<TypedHeader<UserAgent>>,

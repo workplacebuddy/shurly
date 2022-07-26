@@ -1,3 +1,7 @@
+//! Memory storage
+//!
+//! Will be destroyed on system shutdown
+
 use std::collections::HashMap;
 use std::net::IpAddr;
 use std::sync::Arc;
@@ -21,14 +25,23 @@ use super::Storage;
 use super::UpdateDestinationValues;
 use super::UpdateNoteValues;
 
+/// An in-memory storage
+///
+/// Will be destroyed on system shutdown
 #[derive(Clone, Debug)]
 pub struct Memory {
+    /// All users in storage
     users: Arc<Mutex<HashMap<Uuid, User>>>,
+
+    /// All destinations in storage
     destinations: Arc<Mutex<HashMap<Uuid, Destination>>>,
+
+    /// All notes in storage
     notes: Arc<Mutex<HashMap<Uuid, Note>>>,
 }
 
 impl Memory {
+    /// Create a new empty Memory storage
     pub fn new() -> Self {
         Self {
             users: Arc::new(Mutex::new(HashMap::new())),

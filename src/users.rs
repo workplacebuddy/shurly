@@ -1,3 +1,5 @@
+//! Users
+
 use anyhow::Result;
 use chrono::naive::NaiveDateTime;
 use serde::Deserialize;
@@ -20,18 +22,39 @@ pub enum Role {
     Manager,
 }
 
+/// The user
 #[derive(Clone, Debug)]
 pub struct User {
+    /// User ID
     pub id: Uuid,
+
+    /// Sessions ID, linked to the token generation
     pub session_id: Uuid,
+
+    /// Username
     pub username: String,
+
+    /// Hashed password
     pub hashed_password: String,
+
+    /// Role of the user
     pub role: Role,
+
+    /// Creation date
     pub created_at: NaiveDateTime,
+
+    /// Last updated at
     pub updated_at: NaiveDateTime,
+
+    /// Soft-deleted at
     pub deleted_at: Option<NaiveDateTime>,
 }
 
+/// On startup, ensure there is at least a single user
+///
+/// This user will be created with the credentials from the `INITIAL_USERNAME` and
+/// `INITIAL_PASSWORD` environment variables. If those are empty, randomly generated credentials
+/// will be user; these will be shown in the logs
 pub async fn ensure_initial_user<S: Storage>(storage: &S) -> Result<()> {
     let user = storage.find_any_single_user().await?;
 

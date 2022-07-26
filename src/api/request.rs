@@ -16,6 +16,12 @@ use super::Error;
 
 /// Parse and normalize a slug
 ///
+/// Will:
+/// - Remove leading and trailing slashes
+/// - Reject if slug contains `?` or `#`
+///
+/// Will return an [`Error`](Error) when the slug contains invalid characters
+///
 /// ```rust
 /// let slug = "/some-slug";
 /// assert_eq!(parse_slug(slug), "some-slug".to_string())
@@ -49,7 +55,10 @@ where
     Url::parse(url.as_ref()).map_err(Error::bad_request)
 }
 
-fn parse_json<J>(json: Result<Json<J>, JsonRejection>) -> Result<J, Error> {
+/// Handle incoming [`Json`](Json) with proper API error handling
+///
+/// When the json is invalid, a [`Error`](Error) describing the issue will be returned
+fn handle_json<J>(json: Result<Json<J>, JsonRejection>) -> Result<J, Error> {
     match json {
         Ok(Json(json)) => Ok(json),
         Err(err) => match err {
@@ -69,7 +78,7 @@ fn parse_json<J>(json: Result<Json<J>, JsonRejection>) -> Result<J, Error> {
     }
 }
 
-/// Wrapper for the JSON extractor
+/// Wrapper around the [`Json`](Json) extractor
 pub struct Form<F>(pub F);
 
 #[async_trait]
@@ -87,11 +96,14 @@ where
             .await
             .map_err(|_| Error::internal_server_error("Could not extract form"))?;
 
-        parse_json(json).map(Form)
+        handle_json(json).map(Form)
     }
 }
 
-fn parse_path<P>(path: Result<Path<P>, PathRejection>) -> Result<P, Error> {
+/// Handle incoming [`Path`](Path) with proper API error handling
+///
+/// When the path is invalid, a [`Error`](Error) describing the issue will be returned
+fn handle_path<P>(path: Result<Path<P>, PathRejection>) -> Result<P, Error> {
     match path {
         Ok(Path(path)) => Ok(path),
         Err(err) => match err {
@@ -106,6 +118,7 @@ fn parse_path<P>(path: Result<Path<P>, PathRejection>) -> Result<P, Error> {
     }
 }
 
+/// Wrapper around the [`Path`](Path) extractor
 pub struct PathParameters<P>(pub P);
 
 #[async_trait]
@@ -121,7 +134,7 @@ where
             .await
             .map_err(|_| Error::internal_server_error("Could not extract path"))?;
 
-        parse_path(path).map(PathParameters)
+        handle_path(path).map(PathParameters)
     }
 }
 

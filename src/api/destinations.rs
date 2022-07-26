@@ -1,3 +1,7 @@
+//! Destinations API endpoints
+//!
+//! Everything related to the destinations management
+
 use axum::Extension;
 use chrono::NaiveDateTime;
 use serde::Deserialize;
@@ -20,18 +24,35 @@ use super::Form;
 use super::PathParameters;
 use super::Success;
 
+/// Destination response going to the user
+///
+/// Basically filtering which fields are shown to the user
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DestinationResponse {
+    /// Destination ID
     pub id: Uuid,
+
+    /// Slug used to identify the destination by the root
     pub slug: String,
+
+    /// Url where root will redirect to
     pub url: String,
+
+    /// Type of destination
     pub is_permanent: bool,
+
+    /// Creation date
     pub created_at: NaiveDateTime,
+
+    /// Last updated at
     pub updated_at: NaiveDateTime,
 }
 
 impl DestinationResponse {
+    /// Create a response from a [`Destination`](Destination)
+    ///
+    /// Basically filtering which fields are shown to the user
     fn from_destination(destination: Destination) -> Self {
         Self {
             id: destination.id,
@@ -43,6 +64,9 @@ impl DestinationResponse {
         }
     }
 
+    /// Create a response from multiple [`Destination`](Destination)s
+    ///
+    /// Basically filtering which fields are shown to the user
     fn from_destination_multiple(mut destinations: Vec<Destination>) -> Vec<Self> {
         destinations
             .drain(..)
@@ -51,6 +75,19 @@ impl DestinationResponse {
     }
 }
 
+/// List all destinations
+///
+/// Request:
+/// ```sh
+/// curl -v -H 'Content-Type: application/json' \
+///     -H 'Authorization: Bearer tokentokentoken' \
+///     http://localhost:6000/api/destinations
+/// ```
+///
+/// Response:
+/// ```json
+/// { "data": [ { "id": "<uuid>", "slug": "some-easy-name" ... } ] }
+/// ```
 pub async fn list<S: Storage>(
     Extension(storage): Extension<S>,
     current_user: CurrentUser<S>,
@@ -67,6 +104,19 @@ pub async fn list<S: Storage>(
     )))
 }
 
+/// Get a single destination
+///
+/// Request:
+/// ```sh
+/// curl -v -H 'Content-Type: application/json' \
+///     -H 'Authorization: Bearer tokentokentoken' \
+///     http://localhost:6000/api/destinations/<uuid>
+/// ```
+///
+/// Response:
+/// ```json
+/// { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
+/// ```
 pub async fn single<S: Storage>(
     Extension(storage): Extension<S>,
     current_user: CurrentUser<S>,
@@ -74,19 +124,41 @@ pub async fn single<S: Storage>(
 ) -> Result<Success<DestinationResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    get_destination(&storage, &destination_id)
+    fetch_destination(&storage, &destination_id)
         .await
         .map(|destination| Success::ok(DestinationResponse::from_destination(destination)))
 }
 
+/// Create destination form
+///
+/// Fields to create a destination with
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateDestinationForm {
+    /// Slug to create a destination with
     slug: String,
+
+    /// Url to create a destination with
     url: String,
+
+    /// Type to create a destination with
     is_permanent: Option<bool>,
 }
 
+/// Create a destination based on the [`CreateDestinationForm`](CreateDestinationForm) form
+///
+/// Request:
+/// ```sh
+/// curl -v -H 'Content-Type: application/json' \
+///     -H 'Authorization: Bearer tokentokentoken' \
+///     -d '{ "slug": "some-easy-name", "url": "https://www.example.com/" }' \
+///     http://localhost:6000/api/destinations
+/// ```
+///
+/// Response
+/// ```json
+/// { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
+/// ```
 pub async fn create<S: Storage>(
     audit_trail: AuditTrail<S>,
     Extension(storage): Extension<S>,
@@ -132,13 +204,39 @@ pub async fn create<S: Storage>(
     }
 }
 
+/// Update destination form
+///
+/// Fields to update a destination with, all fields are optional and are not touched when not
+/// provided
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateDestinationForm {
+    /// New note to update destination with
     url: Option<String>,
+
+    /// Type to update destination with
+    ///
+    /// Can only be set to `false` if the destination already has `is_permanent=true`, otherwise
+    /// only `true` is valid
     is_permanent: Option<bool>,
 }
 
+/// Update a destinations based on the [`UpdateDestinationForm`](UpdateDestinationForm) form
+///
+/// Only provided values are processed, the other fields of the destination will not be touched
+///
+/// Request:
+/// ```sh
+/// curl -v -XPATCH -H 'Content-Type: application/json' \
+///     -H 'Authorization: Bearer tokentokentoken' \
+///     -d '{ "url": "https://www.example.com/", "isPermanent": true }' \
+///     http://localhost:6000/api/destinations/<uuid>
+/// ```
+///
+/// Response
+/// ```json
+/// { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
+/// ```
 pub async fn update<S: Storage>(
     audit_trail: AuditTrail<S>,
     Extension(storage): Extension<S>,
@@ -148,7 +246,7 @@ pub async fn update<S: Storage>(
 ) -> Result<Success<DestinationResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destination = get_destination(&storage, &destination_id).await?;
+    let destination = fetch_destination(&storage, &destination_id).await?;
 
     if destination.is_permanent {
         return Err(Error::bad_request("Permanent URLs can not be updated"));
@@ -179,6 +277,16 @@ pub async fn update<S: Storage>(
     )))
 }
 
+/// Delete a destination
+///
+/// Permanent destinations can not be deleted
+///
+/// Request:
+/// ```sh
+/// curl -v -XDELETE \
+///     -H 'Authorization: Bearer tokentokentoken' \
+///     http://localhost:6000/api/destinations/<uuid>
+/// ```
 pub async fn delete<S: Storage>(
     audit_trail: AuditTrail<S>,
     Extension(storage): Extension<S>,
@@ -187,7 +295,7 @@ pub async fn delete<S: Storage>(
 ) -> Result<Success<&'static str>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destination = get_destination(&storage, &destination_id).await?;
+    let destination = fetch_destination(&storage, &destination_id).await?;
 
     if destination.is_permanent {
         return Err(Error::bad_request("Permanent URLs can not be deleted"));
@@ -205,7 +313,8 @@ pub async fn delete<S: Storage>(
     Ok(Success::<&'static str>::no_content())
 }
 
-async fn get_destination<S: Storage>(
+/// Fetch destination from storage
+async fn fetch_destination<S: Storage>(
     storage: &S,
     destination_id: &Uuid,
 ) -> Result<Destination, Error> {

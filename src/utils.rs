@@ -1,3 +1,5 @@
+//! Miscellaneous utilities
+
 use std::env::var;
 
 /// Get the value of ENV var, or a default
