@@ -4,12 +4,12 @@
 
 ## Features
 
-- Management of destinations through a REST'ish API
-- Permanent/temporary redirects; permanent redirect can not be changed after
-  creation
-- Add notes to destinations to keep track of where destinations are being used
-- Track all hits on destinations, with user agent and ip addres (if possible)
-- Audit log for all creative/destructive management actions
+-   Management of destinations through a REST'ish API
+-   Permanent/temporary redirects; permanent redirect can not be changed after
+    creation
+-   Add notes to destinations to keep track of where destinations are being used
+-   Track all hits on destinations, with user agent and ip addres (if possible)
+-   Audit log for all creative/destructive management actions
 
 ## Quick usage
 
@@ -82,7 +82,7 @@ curl -v -H 'Content-Type: application/json' \
     -d '{ "username": "admin", "password": "verysecret" }' \
     http://localhost:6000/api/users/token
 
-# < { "data": { "access_token": "some token" } }
+# < { "data": { "type": "Bearer", "access_token": "some token" } }
 ```
 
 To create destinations the `/api/destinations` URL can be posted to with a
@@ -152,8 +152,7 @@ An extra requirement is needed to actually run Shurly with a database, that is
 an actual database. This can be setup separately, or the [Docker Compose] setup
 can be used, which will run a PostgreSQL server container.
 
-A simple `docker compose up` will get you started. Use `docker compose up
---build` to rebuild the Shurly image.
+A simple `docker compose up` will get you started. Use `docker compose up --build` to rebuild the Shurly image.
 
 > The Docker Compose setup also runs the Docker version of Shurly, this might
 > not be ideal for fast development iterations. Docker Compose provides the
@@ -221,10 +220,10 @@ credentials can be changed with the `INITIAL_USERNAME` and `INITIAL_PASSWORD`
 environment variables. When using these variables, they will not be output to
 the log.
 
-- `INITIAL_USERNAME`: Username of the first user for the first run (optional,
-  default: some UUIDv4)
-- `INITIAL_PASSWORD`: Password of the first user for the first run (optional,
-  default: something random)
+-   `INITIAL_USERNAME`: Username of the first user for the first run (optional,
+    default: some UUIDv4)
+-   `INITIAL_PASSWORD`: Password of the first user for the first run (optional,
+    default: something random)
 
 The environment variables can be set in a `.env` file, see `.env.default` for
 an example.
@@ -246,23 +245,22 @@ automatically run the migrations -- getting it compiled is the trick :)
 
 Using the `SQLx` CLI adds a couple of nicities to work with migrations.
 
-- Install with: `cargo install sqlx-cli`, or with [other options].
-- Make sure the `DATABASE_URL` environment variable is set
-- To start: `cargo sqlx migrate run`
-- To revert: `cargo sqlx migrate revert`
+-   Install with: `cargo install sqlx-cli`, or with [other options].
+-   Make sure the `DATABASE_URL` environment variable is set
+-   To start: `cargo sqlx migrate run`
+-   To revert: `cargo sqlx migrate revert`
 
 # Things to to (maybe)
 
-- Endpoints to expose some statistics, data is already captured
-- Track incoming parameters in `hits`, maybe?
-- Add aliases for destinations, so hits count for the original
-- A somewhat attractive 404 page, or a default destination?
-- Description of all the API endpoints
+-   Endpoints to expose some statistics, data is already captured
+-   Track incoming parameters in `hits`, maybe?
+-   Add aliases for destinations, so hits count for the original
+-   A somewhat attractive 404 page, or a default destination?
+-   Description of all the API endpoints
 
 > And, don't call me Shirly.
 
-
-[Docker]: https://www.docker.com/
-[Docker Compose]: https://docs.docker.com/compose/
+[docker]: https://www.docker.com/
+[docker compose]: https://docs.docker.com/compose/
 [`tracing`]: https://lib.rs/crates/tracing
 [other options]: https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md
