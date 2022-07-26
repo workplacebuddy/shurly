@@ -176,7 +176,7 @@ pub async fn create<S: Storage>(
         .map_err(Error::internal_server_error)?;
 
     if let Some(destination) = destination {
-        if destination.deleted_at.is_some() {
+        if destination.is_deleted() {
             Err(Error::bad_request("Slug already exists and is deleted"))
         } else {
             Err(Error::bad_request("Slug already exists"))

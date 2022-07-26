@@ -50,6 +50,13 @@ pub struct User {
     pub deleted_at: Option<NaiveDateTime>,
 }
 
+impl User {
+    /// Is the user soft-deleted?
+    pub fn is_deleted(&self) -> bool {
+        self.deleted_at.is_some()
+    }
+}
+
 /// On startup, ensure there is at least a single user
 ///
 /// This user will be created with the credentials from the `INITIAL_USERNAME` and

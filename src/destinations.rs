@@ -30,3 +30,10 @@ pub struct Destination {
     /// Soft-deleted at
     pub deleted_at: Option<NaiveDateTime>,
 }
+
+impl Destination {
+    /// Is the destination soft-deleted?
+    pub fn is_deleted(&self) -> bool {
+        self.deleted_at.is_some()
+    }
+}

@@ -59,7 +59,7 @@ impl Storage for Memory {
             .lock()
             .await
             .values()
-            .find(|user| user.deleted_at.is_none())
+            .find(|user| !user.is_deleted())
             .cloned())
     }
 
@@ -69,7 +69,7 @@ impl Storage for Memory {
             .lock()
             .await
             .values()
-            .filter(|user| user.deleted_at.is_none())
+            .filter(|user| !user.is_deleted())
             .cloned()
             .collect())
     }
@@ -80,7 +80,7 @@ impl Storage for Memory {
             .lock()
             .await
             .values()
-            .find(|user| user.username == username && user.deleted_at.is_none())
+            .find(|user| user.username == username && !user.is_deleted())
             .cloned())
     }
 
@@ -90,7 +90,7 @@ impl Storage for Memory {
             .lock()
             .await
             .values()
-            .find(|user| &user.id == id && user.deleted_at.is_none())
+            .find(|user| &user.id == id && !user.is_deleted())
             .cloned())
     }
 
@@ -140,7 +140,7 @@ impl Storage for Memory {
             .lock()
             .await
             .values()
-            .filter(|destination| destination.deleted_at.is_none())
+            .filter(|destination| !destination.is_deleted())
             .cloned()
             .collect())
     }
@@ -161,7 +161,7 @@ impl Storage for Memory {
             .lock()
             .await
             .values()
-            .find(|destination| &destination.id == id && destination.deleted_at.is_none())
+            .find(|destination| &destination.id == id && !destination.is_deleted())
             .cloned())
     }
 
@@ -224,7 +224,7 @@ impl Storage for Memory {
             .await
             .values()
             .filter_map(|note| {
-                if note.destination_id == destination.id && note.deleted_at.is_none() {
+                if note.destination_id == destination.id && !note.is_deleted() {
                     Some(note.clone())
                 } else {
                     None
@@ -243,7 +243,7 @@ impl Storage for Memory {
             .lock()
             .await
             .values()
-            .find(|note| &note.id == note_id && note.deleted_at.is_none())
+            .find(|note| &note.id == note_id && !note.is_deleted())
             .cloned())
     }
 

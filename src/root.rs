@@ -50,7 +50,7 @@ pub async fn root<S: Storage>(
             .await
             .map_err(internal_error)?;
 
-        if destination.deleted_at.is_some() {
+        if destination.is_deleted() {
             tracing::debug!(r#"Slug "{slug}" no longer exists"#);
 
             StatusCode::GONE

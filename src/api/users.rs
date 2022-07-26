@@ -229,7 +229,7 @@ pub async fn create<S: Storage>(
         .map_err(Error::internal_server_error)?;
 
     if let Some(user) = user {
-        if user.deleted_at.is_some() {
+        if user.is_deleted() {
             Err(Error::bad_request("User already exists and is deleted"))
         } else {
             Err(Error::bad_request("User already exists"))

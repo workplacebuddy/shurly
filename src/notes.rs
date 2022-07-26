@@ -27,3 +27,10 @@ pub struct Note {
     /// Soft-deleted at
     pub deleted_at: Option<NaiveDateTime>,
 }
+
+impl Note {
+    /// Is the note soft-deleted?
+    pub fn is_deleted(&self) -> bool {
+        self.deleted_at.is_some()
+    }
+}
