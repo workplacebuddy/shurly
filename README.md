@@ -160,7 +160,7 @@ A simple `docker compose up` will get you started. Use `docker compose up --buil
 >
 > ```sh
 > # `the-data` is the name of the PostgreSQL service
-> docker composer up the-data
+> docker compose up the-data
 > ```
 
 When running it without Docker, there needs to be a `DATABASE_URL` environment
