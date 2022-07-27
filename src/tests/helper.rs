@@ -32,6 +32,13 @@ pub struct Destination {
     pub url: String,
 }
 
+/// Test helper version of Note struct
+#[derive(Debug, PartialEq, Eq)]
+pub struct Note {
+    pub id: Uuid,
+    pub content: String,
+}
+
 /// Setup the Shurly app
 ///
 /// Inject some environment variables to match our tests
@@ -292,6 +299,214 @@ pub async fn myabe_delete_destination(
     )
 }
 
+pub async fn maybe_create_note(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    content: &str,
+) -> (StatusCode, Option<Note>, Option<String>) {
+    let mut payload = Map::new();
+    payload.insert("content".to_string(), Value::String(content.to_string()));
+
+    let request = Request::builder()
+        .method(Method::POST)
+        .uri(format!("/api/destinations/{}/notes", destination_id))
+        .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+        .header(AUTHORIZATION, access_token)
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::CREATED {
+            Some(get_note(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn list_notes(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+) -> (StatusCode, Option<Vec<Note>>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri(format!("/api/destinations/{}/notes", destination_id))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_notes(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn single_note(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    note_id: &Uuid,
+) -> (StatusCode, Option<Note>, Option<String>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri(format!(
+            "/api/destinations/{}/notes/{}",
+            destination_id, note_id
+        ))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_note(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST || status_code == StatusCode::NOT_FOUND {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn single_note_with_str(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    note_id: &str,
+) -> (StatusCode, Option<Note>, Option<String>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri(format!(
+            "/api/destinations/{}/notes/{}",
+            destination_id, note_id
+        ))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_note(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST || status_code == StatusCode::NOT_FOUND {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn maybe_update_note(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    note_id: &Uuid,
+    content: &str,
+) -> (StatusCode, Option<Note>, Option<String>) {
+    let mut payload = Map::new();
+    payload.insert("content".to_string(), Value::String(content.to_string()));
+
+    let request = Request::builder()
+        .method(Method::PATCH)
+        .uri(format!(
+            "/api/destinations/{}/notes/{}",
+            destination_id, note_id
+        ))
+        .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+        .header(AUTHORIZATION, access_token)
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_note(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn myabe_delete_note(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    note_id: &Uuid,
+) -> (StatusCode, Option<String>) {
+    let request = Request::builder()
+        .method(Method::DELETE)
+        .uri(format!(
+            "/api/destinations/{}/notes/{}",
+            destination_id, note_id
+        ))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
 pub async fn current_user(app: &mut Router, access_token: &str) -> (StatusCode, Option<User>) {
     let request = Request::builder()
         .method(Method::GET)
@@ -510,6 +725,30 @@ fn get_destinations(body: &Bytes) -> Vec<Destination> {
         .iter()
         .map(|f| f.as_object().unwrap())
         .map(value_to_destination)
+        .collect()
+}
+
+fn value_to_note(note: &Map<String, Value>) -> Note {
+    Note {
+        id: note["id"].as_str().map(Uuid::parse_str).unwrap().unwrap(),
+        content: note["content"].as_str().map(ToString::to_string).unwrap(),
+    }
+}
+
+fn get_note(body: &Bytes) -> Note {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]
+        .as_object()
+        .map(value_to_note)
+        .unwrap()
+}
+
+fn get_notes(body: &Bytes) -> Vec<Note> {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f.as_object().unwrap())
+        .map(value_to_note)
         .collect()
 }
 
