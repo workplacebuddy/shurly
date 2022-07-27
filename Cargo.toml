@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 homepage = "https://github.com/workplacebuddy/shurly"
-documentation = "Shurly, this is a URL shortener with API management"
+description = "Shurly, this is a URL shortener with API management"
 repository = "https://github.com/workplacebuddy/shurly"
 readme = "README.md"
 
