@@ -53,7 +53,10 @@ docker build --tag shurly .
 Running it is the same as for all Docker container.
 
 ```sh
-docker run --rm --interactive --tty shurly .
+docker run --rm --interactive --tty --publish 7000:7000 shurly .
+
+# for short
+docker run --rm -it -p 7000:7000 shurly .
 ```
 
 ## Usage
