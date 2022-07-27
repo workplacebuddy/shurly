@@ -155,7 +155,8 @@ An extra requirement is needed to actually run Shurly with a database, that is
 an actual database. This can be setup separately, or the [Docker Compose] setup
 can be used, which will run a PostgreSQL server container.
 
-A simple `docker compose up` will get you started. Use `docker compose up --build` to rebuild the Shurly image.
+A simple `docker compose up` will get you started. Use `docker compose up
+--build` to rebuild the Shurly image.
 
 > The Docker Compose setup also runs the Docker version of Shurly, this might
 > not be ideal for fast development iterations. Docker Compose provides the
@@ -168,6 +169,16 @@ A simple `docker compose up` will get you started. Use `docker compose up --buil
 
 When running it without Docker, there needs to be a `DATABASE_URL` environment
 variable.
+
+## Pre-built Docker images
+
+For those who like to use Docker, but don't want to go through the hassle of
+building the images; pre-built images are available:
+
+-   With `memory` feature: [`ghcr.io/workplacebuddy/shurly:master-memory`]
+-   With `postgres` feature: [`ghcr.io/workplacebuddy/shurly:master-postgres`]
+-   More information and tags available here:
+    https://github.com/workplacebuddy/shurly/pkgs/container/shurly
 
 ## Configuration
 
@@ -268,3 +279,5 @@ Using the `SQLx` CLI adds a couple of nicities to work with migrations.
 [docker compose]: https://docs.docker.com/compose/
 [`tracing`]: https://lib.rs/crates/tracing
 [other options]: https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md
+[`ghcr.io/workplacebuddy/shurly:master-memory`]: https://github.com/workplacebuddy/shurly/pkgs/container/shurly
+[`ghcr.io/workplacebuddy/shurly:master-postgres`]: https://github.com/workplacebuddy/shurly/pkgs/container/shurly
