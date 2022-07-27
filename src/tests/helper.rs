@@ -39,6 +39,13 @@ pub struct Note {
     pub content: String,
 }
 
+/// Error response
+#[derive(Debug, PartialEq, Eq)]
+pub struct Error {
+    pub error: String,
+    pub description: Option<String>,
+}
+
 /// Setup the Shurly app
 ///
 /// Inject some environment variables to match our tests
@@ -238,6 +245,45 @@ pub async fn maybe_create_destination(
     url: &str,
 ) -> (StatusCode, Option<Destination>, Option<String>) {
     maybe_create_destination_with_is_permanent(app, access_token, slug, url, false).await
+}
+
+pub async fn maybe_create_destination_with_raw_body(
+    app: &mut Router,
+    access_token: &str,
+    body: &'static str,
+    include_content_type: bool,
+) -> (StatusCode, Option<Destination>, Option<Error>) {
+    let mut builder = Request::builder()
+        .method(Method::POST)
+        .uri("/api/destinations");
+
+    if include_content_type {
+        builder = builder.header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref());
+    }
+
+    let request = builder
+        .header(AUTHORIZATION, access_token)
+        .body(Body::from(body.as_bytes()))
+        .unwrap();
+
+    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+
+    (
+        status_code,
+        if status_code == StatusCode::CREATED {
+            Some(get_destination(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error(&body))
+        } else {
+            None
+        },
+    )
 }
 
 pub async fn maybe_update_destination(
@@ -751,6 +797,24 @@ fn get_notes(body: &Bytes) -> Vec<Note> {
         .map(|f| f.as_object().unwrap())
         .map(value_to_note)
         .collect()
+}
+
+fn value_to_error(error: &Map<String, Value>) -> Error {
+    Error {
+        error: error["error"].as_str().map(ToString::to_string).unwrap(),
+        description: error
+            .get("description")
+            .and_then(Value::as_str)
+            .map(ToString::to_string),
+    }
+}
+
+fn get_error(body: &Bytes) -> Error {
+    serde_json::from_slice::<Value>(&body[..])
+        .unwrap()
+        .as_object()
+        .map(value_to_error)
+        .unwrap()
 }
 
 fn get_error_message(body: &Bytes) -> String {
