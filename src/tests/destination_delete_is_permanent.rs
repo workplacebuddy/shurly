@@ -26,7 +26,7 @@ async fn test_destination_delete_is_permanent() {
     let existing_destination_id = destination.unwrap().id;
 
     // check root redirect
-    let (status_code, location) = helper::root(&mut app, slug).await;
+    let (status_code, location, _) = helper::root(&mut app, slug).await;
     assert_eq!(StatusCode::PERMANENT_REDIRECT, status_code);
     assert_eq!(Some(url.to_string()), location);
 

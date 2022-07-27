@@ -20,7 +20,7 @@ async fn test_destination() {
     let existing_destination_id = destination.unwrap().id;
 
     // check root redirect
-    let (status_code, location) = helper::root(&mut app, slug).await;
+    let (status_code, location, _) = helper::root(&mut app, slug).await;
     assert_eq!(StatusCode::TEMPORARY_REDIRECT, status_code);
     assert_eq!(Some(url.to_string()), location);
 
@@ -37,7 +37,7 @@ async fn test_destination() {
     assert_eq!(StatusCode::NO_CONTENT, status_code);
 
     // check root redirect
-    let (status_code, location) = helper::root(&mut app, slug).await;
+    let (status_code, location, _) = helper::root(&mut app, slug).await;
     assert_eq!(StatusCode::GONE, status_code);
     assert_eq!(None, location);
 

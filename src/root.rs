@@ -2,8 +2,6 @@
 //!
 //! The most important part of Shurly, the actual redirect logic
 
-use std::str::Utf8Error;
-
 use axum::headers::UserAgent;
 use axum::http::header::LOCATION;
 use axum::http::HeaderMap;
@@ -29,7 +27,7 @@ pub async fn root<S: Storage>(
     uri: Uri,
 ) -> Result<(StatusCode, HeaderMap), (StatusCode, String)> {
     let slug = uri.path().trim_matches('/');
-    let slug = url_decode_slug(slug).map_err(internal_error)?;
+    let slug = url_decode_slug(slug)?;
 
     tracing::debug!("Looking for slug: /{slug}");
 
@@ -89,8 +87,37 @@ where
 /// URL decode slug
 ///
 /// Uses percentage encoding for the decoding, might error in case of invalid UTF-8
-fn url_decode_slug(slug: &str) -> Result<String, Utf8Error> {
+fn url_decode_slug(slug: &str) -> Result<String, (StatusCode, String)> {
     let decoded = percent_decode_str(slug);
 
-    decoded.decode_utf8().map(|decoded| decoded.to_string())
+    decoded
+        .decode_utf8()
+        .map(|decoded| decoded.to_string())
+        .map_err(|_| {
+            (
+                StatusCode::BAD_REQUEST,
+                "URL contains invalid UTF-8 characters".to_string(),
+            )
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_url_decode_slug_space() {
+        assert_eq!(Ok(" ".to_string()), url_decode_slug("%20"));
+    }
+
+    #[test]
+    fn test_url_decode_slug_invalid() {
+        assert_eq!(
+            Err((
+                StatusCode::BAD_REQUEST,
+                "URL contains invalid UTF-8 characters".to_string(),
+            )),
+            url_decode_slug("%c0")
+        );
+    }
 }

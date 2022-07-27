@@ -78,7 +78,7 @@ async fn test_destination_create() {
     assert_eq!(StatusCode::OK, status_code);
     assert!(destination.is_some());
 
-    let (status_code, _) = helper::root(&mut app, valid_with_url_encoded_slug_encoded).await;
+    let (status_code, _, _) = helper::root(&mut app, valid_with_url_encoded_slug_encoded).await;
     assert_eq!(StatusCode::TEMPORARY_REDIRECT, status_code);
 
     // create destination with invalid slug

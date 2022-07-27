@@ -50,7 +50,7 @@ pub async fn setup_test_app() -> Router {
     setup_app().await.unwrap()
 }
 
-pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>) {
+pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>, String) {
     let request = Request::builder()
         .method(Method::GET)
         .uri(format!("/{}", slug))
@@ -63,11 +63,12 @@ pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>) 
     let headers = response.headers();
 
     let location = headers.get(LOCATION);
+    let location = location.map(|header| header.to_str().unwrap().to_string());
 
-    (
-        status_code,
-        location.map(|header| header.to_str().unwrap().to_string()),
-    )
+    let body_bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = String::from_utf8_lossy(&body_bytes[..]).to_string();
+
+    (status_code, location, body)
 }
 
 pub async fn login_with_password(app: &mut Router, password: &str) -> String {
