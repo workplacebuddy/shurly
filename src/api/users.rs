@@ -91,7 +91,7 @@ pub struct LoginForm {
 /// ```sh
 /// curl -v -H 'Content-Type: application/json' \
 ///     -d '{ "username": "admin", "password": "verysecret" }' \
-///     http://localhost:6000/api/users/token
+///     http://localhost:7000/api/users/token
 /// ```
 ///
 /// Response
@@ -127,7 +127,7 @@ pub async fn token<S: Storage>(
 /// ```sh
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/users
+///     http://localhost:7000/api/users
 /// ```
 ///
 /// Response:
@@ -156,14 +156,14 @@ pub async fn list<S: Storage>(
 /// ```sh
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/users/<uuid>
+///     http://localhost:7000/api/users/<uuid>
 /// ```
 ///
 /// Request me:
 /// ```sh
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/users/me
+///     http://localhost:7000/api/users/me
 /// ```
 ///
 /// Response:
@@ -208,7 +208,7 @@ pub struct CreateUserForm {
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
 ///     -d '{ "role": "manager", "username": "some-other-username" }' \
-///     http://localhost:6000/api/users
+///     http://localhost:7000/api/users
 /// ```
 ///
 /// Response
@@ -294,7 +294,7 @@ pub struct ChangePasswordForm {
 /// curl -v -XPUT -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
 ///     -d '{ "currentPassword": "verysecret", "password": "veryverysecret" }' \
-///     http://localhost:6000/api/destinations
+///     http://localhost:7000/api/destinations
 /// ```
 ///
 /// Response
@@ -349,7 +349,7 @@ pub async fn change_password<S: Storage>(
 /// ```sh
 /// curl -v -XDELETE \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/users/<uuid>
+///     http://localhost:7000/api/users/<uuid>
 /// ```
 pub async fn delete<S: Storage>(
     audit_trail: AuditTrail<S>,

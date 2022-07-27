@@ -38,7 +38,7 @@ mod utils;
 const DEFAULT_RUST_LOG: &str = "shurly=debug,tower_http=debug";
 
 /// Default address Shurly binds to
-const DEFAULT_ADDRESS: &str = "0.0.0.0:6000";
+const DEFAULT_ADDRESS: &str = "0.0.0.0:7000";
 
 #[tokio::main]
 async fn main() -> Result<()> {

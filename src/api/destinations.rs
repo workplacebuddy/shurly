@@ -81,7 +81,7 @@ impl DestinationResponse {
 /// ```sh
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/destinations
+///     http://localhost:7000/api/destinations
 /// ```
 ///
 /// Response:
@@ -110,7 +110,7 @@ pub async fn list<S: Storage>(
 /// ```sh
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/destinations/<uuid>
+///     http://localhost:7000/api/destinations/<uuid>
 /// ```
 ///
 /// Response:
@@ -152,7 +152,7 @@ pub struct CreateDestinationForm {
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
 ///     -d '{ "slug": "some-easy-name", "url": "https://www.example.com/" }' \
-///     http://localhost:6000/api/destinations
+///     http://localhost:7000/api/destinations
 /// ```
 ///
 /// Response
@@ -230,7 +230,7 @@ pub struct UpdateDestinationForm {
 /// curl -v -XPATCH -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
 ///     -d '{ "url": "https://www.example.com/", "isPermanent": true }' \
-///     http://localhost:6000/api/destinations/<uuid>
+///     http://localhost:7000/api/destinations/<uuid>
 /// ```
 ///
 /// Response
@@ -285,7 +285,7 @@ pub async fn update<S: Storage>(
 /// ```sh
 /// curl -v -XDELETE \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/destinations/<uuid>
+///     http://localhost:7000/api/destinations/<uuid>
 /// ```
 pub async fn delete<S: Storage>(
     audit_trail: AuditTrail<S>,

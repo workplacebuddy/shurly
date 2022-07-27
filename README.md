@@ -18,10 +18,10 @@
 curl -v -H 'Content-Type: application/json' \
     -H 'Authorization: Bearer tokentokentoken' \
     -d '{ "slug": "the-one", "url": "https://www.example.com/" }' \
-    http://localhost:6000/api/destinations
+    http://localhost:7000/api/destinations
 
 # The redirect
-curl -v http://localhost:6000/the-one
+curl -v http://localhost:7000/the-one
 
 # Response:
 # < HTTP/2 307
@@ -80,7 +80,7 @@ the other API endpoints.
 ```sh
 curl -v -H 'Content-Type: application/json' \
     -d '{ "username": "admin", "password": "verysecret" }' \
-    http://localhost:6000/api/users/token
+    http://localhost:7000/api/users/token
 
 # < { "data": { "type": "Bearer", "access_token": "some token" } }
 ```
@@ -92,7 +92,7 @@ payload to describe what needs to happen when.
 curl -v -H 'Content-Type: application/json' \
     -H 'Authorization: Bearer tokentokentoken' \
     -d '{ "slug": "some-easy-name", "url": "https://www.example.com/" }' \
-    http://localhost:6000/api/destinations
+    http://localhost:7000/api/destinations
 
 # < { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
 ```
@@ -107,7 +107,7 @@ Updating a destination happens in the same fashion.
 curl -v XPATCH -H 'Content-Type: application/json' \
     -H 'Authorization: Bearer tokentokentoken' \
     -d '{ "url": "https://www.example.com/", "isPermanent": true }' \
-    http://localhost:6000/api/destinations/<uuid>
+    http://localhost:7000/api/destinations/<uuid>
 
 # < { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
 ```
@@ -121,7 +121,7 @@ To remove the destination, a `DELETE` endpoint is available.
 ```sh
 curl -v XDELETE \
     -H 'Authorization: Bearer tokentokentoken' \
-    http://localhost:6000/api/destinations/<uuid>
+    http://localhost:7000/api/destinations/<uuid>
 ```
 
 This will soft-delete the destination; creating a new destination with the same
@@ -206,10 +206,10 @@ accept connections.
 
 ```sh
 # Address for Shurly to bind to
-ADDRESS=0.0.0.0:6000
+ADDRESS=0.0.0.0:7000
 
 # Override just the port to run Shurly on
-PORT=6000
+PORT=7000
 ```
 
 ### Initial user credentials

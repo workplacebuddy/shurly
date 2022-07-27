@@ -69,7 +69,7 @@ impl NoteResponse {
 /// ```sh
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/destinations/<uuid>/notes
+///     http://localhost:7000/api/destinations/<uuid>/notes
 /// ```
 ///
 /// Response:
@@ -99,7 +99,7 @@ pub async fn list<S: Storage>(
 /// ```sh
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/destinations/<uuid>/notes/<uuid>
+///     http://localhost:7000/api/destinations/<uuid>/notes/<uuid>
 /// ```
 ///
 /// Response:
@@ -137,7 +137,7 @@ pub struct CreateNoteForm {
 /// curl -v -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
 ///     -d '{ "content": "Used on the 26-07 ad campaign" }' \
-///     http://localhost:6000/api/destinations/<uuid>/notes
+///     http://localhost:7000/api/destinations/<uuid>/notes
 /// ```
 ///
 /// Response
@@ -190,7 +190,7 @@ pub struct UpdateNoteForm {
 /// curl -v -XPATCH -H 'Content-Type: application/json' \
 ///     -H 'Authorization: Bearer tokentokentoken' \
 ///     -d '{ "content": "Used on the 26-07 ad campaign" }' \
-///     http://localhost:6000/api/destinations/<uuid>/notes/<uuid>
+///     http://localhost:7000/api/destinations/<uuid>/notes/<uuid>
 /// ```
 ///
 /// Response
@@ -233,7 +233,7 @@ pub async fn update<S: Storage>(
 /// ```sh
 /// curl -v -XDELETE \
 ///     -H 'Authorization: Bearer tokentokentoken' \
-///     http://localhost:6000/api/destinations/<uuid>/notes/<uuid>
+///     http://localhost:7000/api/destinations/<uuid>/notes/<uuid>
 /// ```
 pub async fn delete<S: Storage>(
     audit_trail: AuditTrail<S>,
