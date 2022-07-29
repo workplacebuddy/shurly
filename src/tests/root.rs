@@ -27,5 +27,5 @@ async fn test_root_with_invalid_utf8() {
     let (status_code, location, body) = helper::root(&mut app, "%c0").await;
     assert_eq!(StatusCode::BAD_REQUEST, status_code);
     assert_eq!(None, location);
-    assert_eq!("URL contains invalid UTF-8 characters".to_string(), body);
+    assert!(body.contains("URL contains invalid UTF-8 characters"));
 }

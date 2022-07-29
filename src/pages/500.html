@@ -1,0 +1,103 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>{error}</title>
+
+        <style type="text/css">
+            html {
+                font-family: 'Segoe UI', 'Segoe UI Web (West European)', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
+            }
+
+            body {
+                box-sizing: border-box;
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 1em;
+                padding: 1em;
+                margin: 0;
+            }
+
+            svg {
+                stroke: #000;
+                stroke-width: 0.4mm;
+                stroke-linecap: round;
+                fill: none;
+                max-width: 100%;
+            }
+
+            @keyframes stroke-animation {
+                0% {
+                    stroke-dashoffset: var(--path-length);
+                }
+
+                100% {
+                    stroke-dashoffset: 0;
+                }
+            }
+
+            path {
+                --animation-length: 0.4s;
+
+                transform: translate(2px, 2px);
+                stroke-dashoffset: var(--path-length);
+                stroke-dasharray: var(--path-length);
+                animation: var(--animation-length) stroke-animation forwards linear;
+            }
+
+            @media (prefers-reduced-motion) {
+                path {
+                    stroke-dashoffset: 0;
+                    animation: none;
+                }
+            }
+
+            path.e {
+                --path-length: 517.5px;
+            }
+
+            path.er {
+                animation-delay: calc(var(--animation-length) / 2);
+                --path-length: 262.53173828125px;
+            }
+
+            path.err {
+                animation-delay: calc((var(--animation-length) / 2) * 2);
+                --path-length: 262.53173828125px;
+            }
+
+            path.erro {
+                animation-delay: calc((var(--animation-length) / 2) * 3);
+                --path-length: 424.02410888671875px;
+            }
+
+            path.error {
+                animation-delay: calc((var(--animation-length) / 2) * 4);
+                --path-length: 262.53173828125px;
+            }
+
+            p {
+                font-size: 2em;
+            }
+        </style>
+    </head>
+
+    <body>
+        <svg width="337" height="110" viewBox="0 0 337 110" xmlns="http://www.w3.org/2000/svg">
+            <title>Error</title>
+
+            <g>
+                <path class="e" d="M 63 105 L 0 105 L 0 0 L 63 0 L 63 12.3 L 14.25 12.3 L 14.25 44.25 L 56.25 44.25 L 56.25 56.25 L 14.25 56.25 L 14.25 92.7 L 63 92.7 L 63 105 Z"/>
+                <path class="er" d="M 95.25 105 L 81.75 105 L 81.75 27 L 94.8 27 L 94.8 43.95 Q 96.75 39 100.05 34.725 Q 103.35 30.45 108.3 27.825 Q 113.25 25.2 119.85 25.2 Q 122.1 25.2 124.35 25.425 Q 126.6 25.65 128.1 26.1 L 124.05 40.05 Q 121.329 38.904 117.652 38.852 A 24.891 24.891 0 0 0 117.3 38.85 A 19.437 19.437 0 0 0 107.355 41.619 A 23.413 23.413 0 0 0 106.725 42 Q 101.733 45.129 98.518 51.663 A 34.3 34.3 0 0 0 98.475 51.75 Q 95.25 58.35 95.25 68.55 L 95.25 105 Z"/>
+                <path class="err" d="M 155.1 105 L 141.6 105 L 141.6 27 L 154.65 27 L 154.65 43.95 Q 156.6 39 159.9 34.725 Q 163.2 30.45 168.15 27.825 Q 173.1 25.2 179.7 25.2 Q 181.95 25.2 184.2 25.425 Q 186.45 25.65 187.95 26.1 L 183.9 40.05 Q 181.179 38.904 177.502 38.852 A 24.891 24.891 0 0 0 177.15 38.85 A 19.437 19.437 0 0 0 167.205 41.619 A 23.413 23.413 0 0 0 166.575 42 Q 161.583 45.129 158.368 51.663 A 34.3 34.3 0 0 0 158.325 51.75 Q 155.1 58.35 155.1 68.55 L 155.1 105 Z"/>
+                <path class="erro" d="M 216.842 104.791 A 40.821 40.821 0 0 0 229.8 106.8 A 46.089 46.089 0 0 0 233.212 106.675 A 37.886 37.886 0 0 0 249.675 101.7 Q 258.45 96.6 263.55 87.375 A 39.383 39.383 0 0 0 267.529 76.663 A 51.276 51.276 0 0 0 268.65 65.7 A 51.813 51.813 0 0 0 267.922 56.837 A 38.692 38.692 0 0 0 263.475 44.175 Q 258.3 35.1 249.525 30.15 A 37.273 37.273 0 0 0 242.563 27.109 A 41.607 41.607 0 0 0 229.8 25.2 A 46.987 46.987 0 0 0 227.43 25.259 A 39.254 39.254 0 0 0 210 30.15 Q 201.15 35.1 196.05 44.25 A 39.034 39.034 0 0 0 191.926 55.635 A 52.509 52.509 0 0 0 190.95 66 A 52.23 52.23 0 0 0 191.347 72.53 A 41.176 41.176 0 0 0 195.975 87.225 Q 201 96.45 209.85 101.625 A 36.839 36.839 0 0 0 216.842 104.791 Z M 229.8 94.8 A 28.112 28.112 0 0 0 237.639 93.764 A 21.001 21.001 0 0 0 248.25 86.775 A 28.204 28.204 0 0 0 253.979 74.64 A 40.657 40.657 0 0 0 254.85 66 A 32.064 32.064 0 0 0 253.013 55.071 A 30.021 30.021 0 0 0 251.55 51.675 A 28.796 28.796 0 0 0 245.292 43.322 A 27.256 27.256 0 0 0 242.625 41.175 Q 237 37.2 229.8 37.2 Q 217.95 37.2 211.35 45 A 26.817 26.817 0 0 0 205.839 56.06 Q 204.852 60.047 204.76 64.725 A 49.304 49.304 0 0 0 204.75 65.7 Q 204.75 73.5 208.05 80.175 A 29.156 29.156 0 0 0 213.345 87.735 A 26.441 26.441 0 0 0 216.975 90.825 Q 222.6 94.8 229.8 94.8 Z"/>
+                <path class="error" d="M 300.15 105 L 286.65 105 L 286.65 27 L 299.7 27 L 299.7 43.95 Q 301.65 39 304.95 34.725 Q 308.25 30.45 313.2 27.825 Q 318.15 25.2 324.75 25.2 Q 327 25.2 329.25 25.425 Q 331.5 25.65 333 26.1 L 328.95 40.05 Q 326.229 38.904 322.552 38.852 A 24.891 24.891 0 0 0 322.2 38.85 A 19.437 19.437 0 0 0 312.255 41.619 A 23.413 23.413 0 0 0 311.625 42 Q 306.633 45.129 303.418 51.663 A 34.3 34.3 0 0 0 303.375 51.75 Q 300.15 58.35 300.15 68.55 L 300.15 105 Z"/>
+            </g>
+        </svg>
+
+        <p>{error}</p>
+    </body>
+</html>

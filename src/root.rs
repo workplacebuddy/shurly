@@ -3,17 +3,24 @@
 //! The most important part of Shurly, the actual redirect logic
 
 use axum::headers::UserAgent;
-use axum::http::header::LOCATION;
-use axum::http::HeaderMap;
-use axum::http::HeaderValue;
 use axum::http::StatusCode;
 use axum::http::Uri;
+use axum::response::Html;
+use axum::response::Redirect;
 use axum::Extension;
 use axum::TypedHeader;
 use axum_client_ip::ClientIp;
 use percent_encoding::percent_decode_str;
 
 use crate::storage::Storage;
+
+/// Template for 404 page
+const NOT_FOUND: &str = include_str!("pages/404.html");
+
+/// Template for error page
+///
+/// Has a placeholder to inject a current error message
+const ERROR: &str = include_str!("pages/500.html");
 
 /// The root!
 ///
@@ -25,7 +32,7 @@ pub async fn root<S: Storage>(
     user_agent: Option<TypedHeader<UserAgent>>,
     Extension(storage): Extension<S>,
     uri: Uri,
-) -> Result<(StatusCode, HeaderMap), (StatusCode, String)> {
+) -> Result<Redirect, (StatusCode, Html<String>)> {
     let slug = uri.path().trim_matches('/');
     let slug = url_decode_slug(slug)?;
 
@@ -36,9 +43,7 @@ pub async fn root<S: Storage>(
         .await
         .map_err(internal_error)?;
 
-    let mut headers = HeaderMap::new();
-
-    let status_code = if let Some(destination) = destination {
+    if let Some(destination) = destination {
         storage
             .save_hit(
                 &destination,
@@ -51,43 +56,42 @@ pub async fn root<S: Storage>(
         if destination.is_deleted() {
             tracing::debug!(r#"Slug "{slug}" no longer exists"#);
 
-            StatusCode::GONE
+            Err((
+                StatusCode::GONE,
+                render_error_template("Page not longer exists"),
+            ))
         } else {
             tracing::debug!(r#"Slug "{slug}" redirecting to: {}"#, destination.url);
 
-            headers.insert(
-                LOCATION,
-                HeaderValue::from_str(&destination.url).expect("Valid URL"),
-            );
-
             if destination.is_permanent {
-                StatusCode::PERMANENT_REDIRECT
+                Ok(Redirect::permanent(&destination.url))
             } else {
-                StatusCode::TEMPORARY_REDIRECT
+                Ok(Redirect::temporary(&destination.url))
             }
         }
     } else {
         tracing::debug!(r#"Slug "{slug}" not found"#);
 
-        StatusCode::NOT_FOUND
-    };
-
-    Ok((status_code, headers))
+        Err((StatusCode::NOT_FOUND, render_not_found_template()))
+    }
 }
 
 /// Utility function for mapping any error into a `500 Internal Server Error`
 /// response.
-fn internal_error<E>(err: E) -> (StatusCode, String)
+fn internal_error<E>(err: E) -> (StatusCode, Html<String>)
 where
     E: std::error::Error,
 {
-    (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+    (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        render_error_template(&err.to_string()),
+    )
 }
 
 /// URL decode slug
 ///
 /// Uses percentage encoding for the decoding, might error in case of invalid UTF-8
-fn url_decode_slug(slug: &str) -> Result<String, (StatusCode, String)> {
+fn url_decode_slug(slug: &str) -> Result<String, (StatusCode, Html<String>)> {
     let decoded = percent_decode_str(slug);
 
     decoded
@@ -96,9 +100,23 @@ fn url_decode_slug(slug: &str) -> Result<String, (StatusCode, String)> {
         .map_err(|_| {
             (
                 StatusCode::BAD_REQUEST,
-                "URL contains invalid UTF-8 characters".to_string(),
+                render_error_template("URL contains invalid UTF-8 characters"),
             )
         })
+}
+
+/// Create a HTML version of not found template
+fn render_not_found_template() -> Html<String> {
+    Html(NOT_FOUND.to_string())
+}
+
+/// Very, very simple template renderer
+///
+/// Only replaces the `{error}` in the template with the given string
+///
+/// Make sure to not use user provided error messages, those are _NOT_ safe
+fn render_error_template(error: &str) -> Html<String> {
+    Html(ERROR.replace("{error}", error))
 }
 
 #[cfg(test)]
@@ -107,17 +125,13 @@ mod tests {
 
     #[test]
     fn test_url_decode_slug_space() {
-        assert_eq!(Ok(" ".to_string()), url_decode_slug("%20"));
+        let slug = url_decode_slug("%20").unwrap();
+        assert_eq!(" ".to_string(), slug);
     }
 
     #[test]
     fn test_url_decode_slug_invalid() {
-        assert_eq!(
-            Err((
-                StatusCode::BAD_REQUEST,
-                "URL contains invalid UTF-8 characters".to_string(),
-            )),
-            url_decode_slug("%c0")
-        );
+        let error = url_decode_slug("%c0").unwrap_err();
+        assert_eq!(StatusCode::BAD_REQUEST, error.0);
     }
 }
