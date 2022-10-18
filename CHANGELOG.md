@@ -4,6 +4,12 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version `0.1.2`
+
+### Fixes
+
+-   Upgrade to latest `axum` dependency (~0.5), fixes security vulnerability CVE-2022-3212
+
 ## Version `0.1.1`
 
 ### Features
