@@ -52,3 +52,16 @@ jobs:
         with:
           command: clippy
           args: --workspace --all-targets -- -D warnings
+
+  # We need some "accummulation" job here because bors fails (timeouts) to
+  # listen on matrix builds. Hence, we have some kind of dummy here that bors
+  # can listen on
+  Success:
+    name: Success
+    needs:
+      - Test
+      - Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Success
+        run: exit 0
