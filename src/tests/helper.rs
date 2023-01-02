@@ -60,7 +60,7 @@ pub async fn setup_test_app() -> Router {
 pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>, String) {
     let request = Request::builder()
         .method(Method::GET)
-        .uri(format!("/{}", slug))
+        .uri(format!("/{slug}"))
         .body(Body::empty())
         .unwrap();
 
@@ -152,7 +152,7 @@ pub async fn single_destination(
 ) -> (StatusCode, Option<Destination>) {
     let request = Request::builder()
         .method(Method::GET)
-        .uri(format!("/api/destinations/{}", id))
+        .uri(format!("/api/destinations/{id}"))
         .header(AUTHORIZATION, access_token)
         .body(Body::empty())
         .unwrap();
@@ -298,7 +298,7 @@ pub async fn maybe_update_destination(
 
     let request = Request::builder()
         .method(Method::PATCH)
-        .uri(format!("/api/destinations/{}", destination_id))
+        .uri(format!("/api/destinations/{destination_id}"))
         .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
         .header(AUTHORIZATION, access_token)
         .body(Body::from(serde_json::to_vec(&payload).unwrap()))
@@ -326,7 +326,7 @@ pub async fn myabe_delete_destination(
 ) -> (StatusCode, Option<String>) {
     let request = Request::builder()
         .method(Method::DELETE)
-        .uri(format!("/api/destinations/{}", id))
+        .uri(format!("/api/destinations/{id}"))
         .header(AUTHORIZATION, access_token)
         .body(Body::empty())
         .unwrap();
@@ -357,7 +357,7 @@ pub async fn maybe_create_note(
 
     let request = Request::builder()
         .method(Method::POST)
-        .uri(format!("/api/destinations/{}/notes", destination_id))
+        .uri(format!("/api/destinations/{destination_id}/notes"))
         .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
         .header(AUTHORIZATION, access_token)
         .body(Body::from(serde_json::to_vec(&payload).unwrap()))
@@ -390,7 +390,7 @@ pub async fn list_notes(
 ) -> (StatusCode, Option<Vec<Note>>) {
     let request = Request::builder()
         .method(Method::GET)
-        .uri(format!("/api/destinations/{}/notes", destination_id))
+        .uri(format!("/api/destinations/{destination_id}/notes"))
         .header(AUTHORIZATION, access_token)
         .body(Body::empty())
         .unwrap();
@@ -419,8 +419,7 @@ pub async fn single_note(
     let request = Request::builder()
         .method(Method::GET)
         .uri(format!(
-            "/api/destinations/{}/notes/{}",
-            destination_id, note_id
+            "/api/destinations/{destination_id}/notes/{note_id}",
         ))
         .header(AUTHORIZATION, access_token)
         .body(Body::empty())
@@ -455,8 +454,7 @@ pub async fn single_note_with_str(
     let request = Request::builder()
         .method(Method::GET)
         .uri(format!(
-            "/api/destinations/{}/notes/{}",
-            destination_id, note_id
+            "/api/destinations/{destination_id}/notes/{note_id}",
         ))
         .header(AUTHORIZATION, access_token)
         .body(Body::empty())
@@ -495,8 +493,7 @@ pub async fn maybe_update_note(
     let request = Request::builder()
         .method(Method::PATCH)
         .uri(format!(
-            "/api/destinations/{}/notes/{}",
-            destination_id, note_id
+            "/api/destinations/{destination_id}/notes/{note_id}",
         ))
         .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
         .header(AUTHORIZATION, access_token)
@@ -532,8 +529,7 @@ pub async fn myabe_delete_note(
     let request = Request::builder()
         .method(Method::DELETE)
         .uri(format!(
-            "/api/destinations/{}/notes/{}",
-            destination_id, note_id
+            "/api/destinations/{destination_id}/notes/{note_id}",
         ))
         .header(AUTHORIZATION, access_token)
         .body(Body::empty())
@@ -584,7 +580,7 @@ pub async fn single_user(
 ) -> (StatusCode, Option<User>, Option<String>) {
     let request = Request::builder()
         .method(Method::GET)
-        .uri(format!("/api/users/{}", id))
+        .uri(format!("/api/users/{id}"))
         .header(AUTHORIZATION, access_token)
         .body(Body::empty())
         .unwrap();
@@ -616,7 +612,7 @@ pub async fn maybe_delete_user(
 ) -> (StatusCode, Option<String>) {
     let request = Request::builder()
         .method(Method::DELETE)
-        .uri(format!("/api/users/{}", id))
+        .uri(format!("/api/users/{id}"))
         .header(AUTHORIZATION, access_token)
         .body(Body::empty())
         .unwrap();
