@@ -264,6 +264,11 @@ Using the `SQLx` CLI adds a couple of nicities to work with migrations.
 -   To start: `cargo sqlx migrate run`
 -   To revert: `cargo sqlx migrate revert`
 
+#### Rust version
+
+Shurly is tested on Rust version 1.65, stable and beta. The Docker images are
+created with the `rust:1.65-slim` base image.
+
 # Things to to (maybe)
 
 -   [ ] Endpoints to expose some statistics, data is already captured

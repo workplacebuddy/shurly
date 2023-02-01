@@ -3,7 +3,7 @@
 ##
 
 # Base builder image
-FROM rust:1.62-slim as builder
+FROM rust:1.65-slim as builder
 
 # Very nice
 WORKDIR /usr/src/shurly
