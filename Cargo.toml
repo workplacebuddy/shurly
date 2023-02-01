@@ -14,7 +14,7 @@ memory = []
 postgres = ["dep:sqlx"]
 
 [dependencies]
-anyhow = "1.0.58"
+anyhow = "1.0.68"
 argon2 = "0.4.1"
 axum = { version = "0.6.4", features = ["headers"] }
 axum-client-ip = "0.3.1"
