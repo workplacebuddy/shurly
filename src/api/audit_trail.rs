@@ -3,9 +3,10 @@
 use std::net::IpAddr;
 
 use axum::async_trait;
-use axum::extract::FromRequest;
-use axum::extract::RequestParts;
+use axum::extract::FromRequestParts;
+use axum::http::request::Parts;
 use axum::Extension;
+use axum::RequestPartsExt;
 use axum_client_ip::ClientIp;
 
 use crate::storage::AuditEntry;
@@ -41,21 +42,21 @@ impl<S: Storage> AuditTrail<S> {
 }
 
 #[async_trait]
-impl<B, S: Storage> FromRequest<B> for AuditTrail<S>
+impl<B, S: Storage> FromRequestParts<B> for AuditTrail<S>
 where
-    B: Send,
+    B: Send + Sync,
 {
     type Rejection = Error;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let Extension(storage) = req
+    async fn from_request_parts(parts: &mut Parts, state: &B) -> Result<Self, Self::Rejection> {
+        let Extension(storage) = parts
             .extract::<Extension<S>>()
             .await
             .map_err(|_| Error::internal_server_error("Could not get a storage pool"))?;
 
-        let current_user = CurrentUser::from_request(req).await?;
+        let current_user = CurrentUser::from_request_parts(parts, state).await?;
 
-        let ip_address = Option::<ClientIp>::from_request(req)
+        let ip_address = Option::<ClientIp>::from_request_parts(parts, state)
             .await
             .map_err(|_| Error::internal_server_error("Missing address"))?
             .map(|i| i.0);

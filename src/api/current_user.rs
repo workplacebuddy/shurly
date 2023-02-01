@@ -7,11 +7,12 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use axum::async_trait;
-use axum::extract::FromRequest;
-use axum::extract::RequestParts;
+use axum::extract::FromRequestParts;
 use axum::headers::authorization::Bearer;
 use axum::headers::Authorization;
+use axum::http::request::Parts;
 use axum::Extension;
+use axum::RequestPartsExt;
 use axum::TypedHeader;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
@@ -127,29 +128,29 @@ pub fn generate_token(jwt_keys: &JwtKeys, user: &User) -> Result<Token, Error> {
 }
 
 #[async_trait]
-impl<B, S> FromRequest<B> for CurrentUser<S>
+impl<B, S> FromRequestParts<B> for CurrentUser<S>
 where
-    B: Send,
+    B: Send + Sync,
     S: Storage,
 {
     type Rejection = Error;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &B) -> Result<Self, Self::Rejection> {
         use jsonwebtoken::decode;
         use jsonwebtoken::Validation;
 
         // Extract the token from the authorization header
         let TypedHeader(Authorization(bearer)) =
-            TypedHeader::<Authorization<Bearer>>::from_request(req)
+            TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
                 .await
                 .map_err(|_| Error::forbidden("Missing API token"))?;
 
-        let Extension(jwt_keys) = req
+        let Extension(jwt_keys) = parts
             .extract::<Extension<JwtKeys>>()
             .await
             .map_err(|_| Error::internal_server_error("Could not get JWT keys"))?;
 
-        let Extension(storage) = req
+        let Extension(storage) = parts
             .extract::<Extension<S>>()
             .await
             .map_err(|_| Error::internal_server_error("Could not get a storage pool"))?;

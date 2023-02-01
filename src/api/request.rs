@@ -5,9 +5,11 @@ use axum::body::HttpBody;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::rejection::PathRejection;
 use axum::extract::FromRequest;
+use axum::extract::FromRequestParts;
 use axum::extract::Json;
 use axum::extract::Path;
-use axum::extract::RequestParts;
+use axum::http::request::Parts;
+use axum::http::request::Request;
 use axum::BoxError;
 use serde::de::DeserializeOwned;
 use url::Url;
@@ -82,17 +84,18 @@ fn handle_json<J>(json: Result<Json<J>, JsonRejection>) -> Result<J, Error> {
 pub struct Form<F>(pub F);
 
 #[async_trait]
-impl<B, F> FromRequest<B> for Form<F>
+impl<S, B, F> FromRequest<S, B> for Form<F>
 where
-    B: HttpBody + Send,
+    S: Send + Sync,
+    B: HttpBody + Send + 'static,
     B::Data: Send,
     B::Error: Into<BoxError>,
     F: DeserializeOwned + Send,
 {
     type Rejection = Error;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let json = Result::<Json<F>, JsonRejection>::from_request(req)
+    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+        let json = Result::<Json<F>, JsonRejection>::from_request(req, state)
             .await
             .map_err(|_| Error::internal_server_error("Could not extract form"))?;
 
@@ -122,15 +125,15 @@ fn handle_path<P>(path: Result<Path<P>, PathRejection>) -> Result<P, Error> {
 pub struct PathParameters<P>(pub P);
 
 #[async_trait]
-impl<B, P> FromRequest<B> for PathParameters<P>
+impl<S, P> FromRequestParts<S> for PathParameters<P>
 where
-    B: Send,
+    S: Send + Sync,
     P: DeserializeOwned + Send,
 {
     type Rejection = Error;
 
-    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-        let path = Result::<Path<P>, PathRejection>::from_request(req)
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let path = Result::<Path<P>, PathRejection>::from_request_parts(parts, state)
             .await
             .map_err(|_| Error::internal_server_error("Could not extract path"))?;
 

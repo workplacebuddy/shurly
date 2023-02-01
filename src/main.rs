@@ -8,7 +8,6 @@
 use std::net::SocketAddr;
 
 use anyhow::Result;
-use axum::routing::get;
 use axum::Extension;
 use axum::Router;
 use axum::Server;
@@ -79,7 +78,7 @@ fn create_router<S: Storage>(storage: S) -> Router {
 
     Router::new()
         .nest("/api", router::<S>())
-        .fallback(get(root::root::<S>))
+        .fallback(root::root::<S>)
         .layer(TraceLayer::new_for_http())
         .layer(Extension(storage))
         .layer(Extension(jwt_keys))
