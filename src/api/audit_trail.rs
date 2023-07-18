@@ -7,7 +7,7 @@ use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::Extension;
 use axum::RequestPartsExt;
-use axum_client_ip::ClientIp;
+use axum_client_ip::InsecureClientIp;
 
 use crate::storage::AuditEntry;
 use crate::storage::Storage;
@@ -56,7 +56,7 @@ where
 
         let current_user = CurrentUser::from_request_parts(parts, state).await?;
 
-        let ip_address = Option::<ClientIp>::from_request_parts(parts, state)
+        let ip_address = Option::<InsecureClientIp>::from_request_parts(parts, state)
             .await
             .map_err(|_| Error::internal_server_error("Missing address"))?
             .map(|i| i.0);

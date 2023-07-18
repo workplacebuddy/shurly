@@ -9,7 +9,7 @@ use axum::response::Html;
 use axum::response::Redirect;
 use axum::Extension;
 use axum::TypedHeader;
-use axum_client_ip::ClientIp;
+use axum_client_ip::InsecureClientIp;
 use percent_encoding::percent_decode_str;
 
 use crate::storage::Storage;
@@ -28,7 +28,7 @@ const ERROR: &str = include_str!("pages/500.html");
 ///
 /// A lookup in storage will be done looking for the right slug, based on the path
 pub async fn root<S: Storage>(
-    ip_address: Option<ClientIp>,
+    ip_address: Option<InsecureClientIp>,
     user_agent: Option<TypedHeader<UserAgent>>,
     Extension(storage): Extension<S>,
     uri: Uri,
