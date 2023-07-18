@@ -4,6 +4,15 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.2.0
+
+### Fixes
+
+-   Update MSRV to 1.70
+-   Upgrade all dependencies to their latest versions
+    -   SQLx has a new method for offline support
+    -   No other notable changes
+
 ## Version `0.1.2`
 
 ### Fixes
