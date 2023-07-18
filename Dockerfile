@@ -3,7 +3,7 @@
 ##
 
 # Base builder image
-FROM rust:1.65-slim as builder
+FROM rust:1.70-slim as builder
 
 # Very nice
 WORKDIR /usr/src/shurly
@@ -27,13 +27,13 @@ RUN --mount=type=cache,target=/usr/src/shurly/target \
     objcopy --compress-debug-sections target/release/shurly ./shurly
 
 # Lean, mean, image machine
-FROM debian:buster-slim as runtime
+FROM gcr.io/distroless/cc as runtime
 
 # It's us
 LABEL org.opencontainers.image.source https://github.com/workplacebuddy/shurly
 
 # Just the Shurly binary
-COPY --from=builder /usr/src/shurly/shurly /usr/local/bin/shurly
+COPY --from=builder /usr/src/shurly/shurly /
 
 # Run, Shurly, run!
-ENTRYPOINT ["shurly"]
+ENTRYPOINT ["./shurly"]
