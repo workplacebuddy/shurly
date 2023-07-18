@@ -24,7 +24,7 @@ dotenvy = "0.15.7"
 jsonwebtoken = "8.3.0"
 rand_core = { version = "0.6.4", features = ["std"] }
 serde = { version = "1.0.171", features = ["derive"] }
-serde_json = "1.0.91"
+serde_json = "1.0.103"
 thiserror = "1.0.38"
 tokio = { version = "1.25.0", features = ["full"] }
 tower-http = { version = "0.3.5", features = ["trace"] }
