@@ -51,5 +51,5 @@ features = [
 
 [dev-dependencies]
 hyper = "0.14.27"
-mime = "0.3.16"
+mime = "0.3.17"
 tower = { version = "0.4.13", features = ["util"] }
