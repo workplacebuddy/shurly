@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE destinations\n            SET deleted_at = CURRENT_TIMESTAMP\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "62d70e4dfef364878779edf425cda2b733afbeff46d969287c302eb2fbe86e91"
+}

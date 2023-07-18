@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO hits (id, destination_id, ip_address, user_agent)\n            VALUES ($1, $2, $3, $4)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Inet",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "434e0c37f4e05ba059c43ffb7621a15c4dc6198af89aefc89ff08d1309d212dd"
+}

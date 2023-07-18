@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE notes\n            SET deleted_at = CURRENT_TIMESTAMP\n            WHERE id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b448be0c0c64005c1ea29f07eff48e00a195b3ade6edf7799b02d64c615b20ea"
+}

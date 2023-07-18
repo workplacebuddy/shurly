@@ -1,0 +1,37 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO audit_trail (id, type, created_by, user_id, destination_id, note_id, ip_address)\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        {
+          "Custom": {
+            "name": "audit_trail_entry_type",
+            "kind": {
+              "Enum": [
+                "create-user",
+                "change-password",
+                "delete-user",
+                "create-destination",
+                "update-destination",
+                "delete-destination",
+                "create-note",
+                "update-note",
+                "delete-note"
+              ]
+            }
+          }
+        },
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Inet"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b6b66881ba41e9f7106c510472f73ebebe3e1ef5186ffbe81628808906c821bb"
+}
