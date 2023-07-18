@@ -20,7 +20,7 @@ argon2 = "0.5.1"
 axum = { version = "0.6.19", features = ["headers"] }
 axum-client-ip = "0.4.1"
 chrono = { version = "0.4.26", features = ["serde"] }
-dotenv = "0.15.0"
+dotenvy = "0.15.7"
 jsonwebtoken = "8.2.0"
 rand_core = { version = "0.6.4", features = ["std"] }
 serde = { version = "1.0.152", features = ["derive"] }

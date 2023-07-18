@@ -86,7 +86,7 @@ fn create_router<S: Storage>(storage: S) -> Router {
 
 /// Setup the environment (variables) in which Shurly runs
 fn setup_environment() {
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
 }
 
 /// Setup the tracing subscriber for logging
