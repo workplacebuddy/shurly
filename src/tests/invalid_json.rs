@@ -30,7 +30,7 @@ async fn test_invalid_json() {
     let error = error.unwrap();
     assert_eq!("JSON syntax error".to_string(), error.error);
     assert_eq!(
-        Some("?: EOF while parsing a string at line 1 column 3".to_string()),
+        Some("EOF while parsing a string at line 1 column 3".to_string()),
         error.description
     );
 
