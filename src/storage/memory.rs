@@ -118,7 +118,7 @@ impl Storage for Memory {
             .lock()
             .await
             .get_mut(&user.id)
-            .map(|mut user| {
+            .map(|user| {
                 user.session_id = *values.session_id;
                 user.hashed_password = values.hashed_password.to_string();
 
@@ -128,7 +128,7 @@ impl Storage for Memory {
     }
 
     async fn delete_user(&self, user: &User) -> Result<()> {
-        if let Some(mut user) = self.users.lock().await.get_mut(&user.id) {
+        if let Some(user) = self.users.lock().await.get_mut(&user.id) {
             user.deleted_at = Some(Utc::now().naive_utc());
         }
 
@@ -196,7 +196,7 @@ impl Storage for Memory {
             .lock()
             .await
             .get_mut(&destination.id)
-            .map(|mut destination| {
+            .map(|destination| {
                 if let Some(url) = &values.url {
                     destination.url = url.to_string();
                 }
@@ -211,7 +211,7 @@ impl Storage for Memory {
     }
 
     async fn delete_destination(&self, destination: &Destination) -> Result<()> {
-        if let Some(mut destination) = self.destinations.lock().await.get_mut(&destination.id) {
+        if let Some(destination) = self.destinations.lock().await.get_mut(&destination.id) {
             destination.deleted_at = Some(Utc::now().naive_utc());
         }
 
@@ -274,7 +274,7 @@ impl Storage for Memory {
             .lock()
             .await
             .get_mut(&note.id)
-            .map(|mut note| {
+            .map(|note| {
                 if let Some(content) = values.content {
                     note.content = content.to_string();
                 }
@@ -285,7 +285,7 @@ impl Storage for Memory {
     }
 
     async fn delete_note(&self, note: &Note) -> Result<()> {
-        if let Some(mut note) = self.notes.lock().await.get_mut(&note.id) {
+        if let Some(note) = self.notes.lock().await.get_mut(&note.id) {
             note.deleted_at = Some(Utc::now().naive_utc());
         }
 
