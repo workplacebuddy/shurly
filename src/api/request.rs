@@ -12,6 +12,7 @@ use axum::http::request::Parts;
 use axum::http::request::Request;
 use axum::BoxError;
 use serde::de::DeserializeOwned;
+use unicode_normalization::UnicodeNormalization;
 use url::Url;
 
 use super::Error;
@@ -41,7 +42,8 @@ pub fn parse_slug(slug: &str) -> Result<String, Error> {
         }
     }
 
-    Ok(slug.to_string())
+    // unicode normalization, prefer NFC form
+    Ok(slug.nfc().collect())
 }
 
 /// Parse and validate a URL
@@ -161,5 +163,18 @@ mod tests {
     fn test_parse_url() {
         let url = "https://www.example.com/";
         assert!(parse_url(url).is_ok());
+    }
+
+    #[test]
+    fn test_unicode_normalization() {
+        // 'ä' with a single code point U+00E4
+        let slug_one = String::from_utf8(vec![195, 164]).unwrap();
+        assert_eq!(parse_slug(&slug_one).unwrap(), slug_one);
+
+        // 'ä' with two code points: U+0061 U+03080
+        let slug_two = String::from_utf8(vec![97, 204, 136]).unwrap();
+
+        // the two code points are normalized to U+00E4
+        assert_eq!(parse_slug(&slug_two).unwrap(), slug_one);
     }
 }

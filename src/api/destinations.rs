@@ -136,6 +136,10 @@ pub async fn single<S: Storage>(
 #[serde(rename_all = "camelCase")]
 pub struct CreateDestinationForm {
     /// Slug to create a destination with
+    ///
+    /// The slug is normalized:
+    /// - Leading and trailing slashes are removed
+    /// - Unicode normalization
     slug: String,
 
     /// Url to create a destination with
