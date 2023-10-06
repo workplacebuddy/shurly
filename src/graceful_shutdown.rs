@@ -22,8 +22,8 @@ pub async fn handler() {
     let terminate = std::future::pending::<()>();
 
     tokio::select! {
-        _ = ctrl_c => {},
-        _ = terminate => {},
+        () = ctrl_c => {},
+        () = terminate => {},
     }
 
     tracing::info!("Terminate signal received, starting graceful shutdown");
