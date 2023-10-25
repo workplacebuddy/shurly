@@ -4,6 +4,26 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.2.2
+
+### Fixes
+
+-   Upgrade to latest `rustix` (0.38.20), fixes security vulnerability GHSA-c827-hfw6-qwvm
+
+## Version 0.2.1
+
+### Features
+
+-   Add unicode normalization to slugs
+-   Upgrade all dependencies to their latest versions
+
+### Fixes
+
+-   Update MSRV to 1.70
+-   Upgrade all dependencies to their latest versions
+    -   SQLx has a new method for offline support
+    -   No other notable changes
+
 ## Version 0.2.0
 
 ### Fixes
