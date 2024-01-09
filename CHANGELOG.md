@@ -4,6 +4,13 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.2.3
+
+### Fixes
+
+-   Upgrade to latest `axum` (0.7.3), with the new `hyper` release (1.1.0)
+-   Update Github workflows with latest (maintained) actions
+
 ## Version 0.2.2
 
 ### Fixes
