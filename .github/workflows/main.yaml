@@ -16,42 +16,37 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         rust: ["1.70", stable, beta]
+        features:
+          - default
+          - postgres
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: build
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
+      - name: Use offline SQLx
+        run: |
+          echo "SQLX_OFFLINE=true" >> $GITHUB_ENV
+      - name: Build
+        run: cargo build --features ${{ matrix.features }}
+      - name: Test
+        run: cargo test
 
   Lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          override: true
           components: rustfmt, clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-      - uses: actions-rs/cargo@v1
+      - name: Format check
+        run: cargo fmt --all -- --check
+      - name: Clippy check
         if: always()
-        with:
-          command: clippy
-          args: --workspace --all-targets -- -D warnings
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
   # We need some "accummulation" job here because bors fails (timeouts) to
   # listen on matrix builds. Hence, we have some kind of dummy here that bors
