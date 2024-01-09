@@ -17,8 +17,9 @@ postgres = ["dep:sqlx"]
 [dependencies]
 anyhow = "1.0.75"
 argon2 = "0.5.2"
-axum = { version = "0.6.20", features = ["headers"] }
-axum-client-ip = "0.4.2"
+axum = "0.7.3"
+axum-client-ip = "0.5.0"
+axum-extra = { version = "0.9.1", features = ["typed-header"] }
 chrono = { version = "0.4.30", features = ["serde"] }
 dotenvy = "0.15.7"
 jsonwebtoken = "8.3.0"
@@ -27,7 +28,8 @@ serde = { version = "1.0.188", features = ["derive"] }
 serde_json = "1.0.106"
 thiserror = "1.0.48"
 tokio = { version = "1.30.0", features = ["full"] }
-tower-http = { version = "0.4.4", features = ["trace"] }
+tower = { version = "0.4.13", features = ["util"] }
+tower-http = { version = "0.5.0", features = ["trace"] }
 tracing = "0.1.37"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 url = "2.4.1"
@@ -51,6 +53,5 @@ features = [
 ]
 
 [dev-dependencies]
-hyper = "0.14.27"
+http-body-util = "0.1.0"
 mime = "0.3.17"
-tower = { version = "0.4.13", features = ["util"] }

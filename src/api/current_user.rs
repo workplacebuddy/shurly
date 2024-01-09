@@ -8,12 +8,12 @@ use std::sync::Arc;
 
 use axum::async_trait;
 use axum::extract::FromRequestParts;
-use axum::headers::authorization::Bearer;
-use axum::headers::Authorization;
 use axum::http::request::Parts;
 use axum::Extension;
 use axum::RequestPartsExt;
-use axum::TypedHeader;
+use axum_extra::headers::authorization::Bearer;
+use axum_extra::headers::Authorization;
+use axum_extra::TypedHeader;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use serde::Deserialize;

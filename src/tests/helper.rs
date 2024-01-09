@@ -7,9 +7,9 @@ use axum::http::Method;
 use axum::http::Request;
 use axum::http::StatusCode;
 use axum::Router;
+use http_body_util::BodyExt;
 use serde_json::Map;
 use serde_json::Value;
-use tower::util::ServiceExt;
 use tower::Service;
 use uuid::Uuid;
 
@@ -64,7 +64,7 @@ pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>, 
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
 
     let status_code = response.status();
     let headers = response.headers();
@@ -72,8 +72,8 @@ pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>, 
     let location = headers.get(LOCATION);
     let location = location.map(|header| header.to_str().unwrap().to_string());
 
-    let body_bytes = hyper::body::to_bytes(response.into_body()).await.unwrap();
-    let body = String::from_utf8_lossy(&body_bytes[..]).to_string();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+    let body = String::from_utf8_lossy(&body[..]).to_string();
 
     (status_code, location, body)
 }
@@ -90,10 +90,10 @@ pub async fn login_with_password(app: &mut Router, password: &str) -> String {
         .body(Body::from(serde_json::to_vec(&payload).unwrap()))
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     assert_eq!(StatusCode::OK, status_code);
 
@@ -125,10 +125,10 @@ pub async fn maybe_change_password(
         .body(Body::from(serde_json::to_vec(&payload).unwrap()))
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -157,10 +157,10 @@ pub async fn single_destination(
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -183,10 +183,10 @@ pub async fn list_destinations(
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -218,10 +218,10 @@ pub async fn maybe_create_destination_with_is_permanent(
         .body(Body::from(serde_json::to_vec(&payload).unwrap()))
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -266,10 +266,10 @@ pub async fn maybe_create_destination_with_raw_body(
         .body(Body::from(body.as_bytes()))
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -304,10 +304,10 @@ pub async fn maybe_update_destination(
         .body(Body::from(serde_json::to_vec(&payload).unwrap()))
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -331,10 +331,10 @@ pub async fn myabe_delete_destination(
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -363,10 +363,10 @@ pub async fn maybe_create_note(
         .body(Body::from(serde_json::to_vec(&payload).unwrap()))
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -395,10 +395,10 @@ pub async fn list_notes(
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -425,10 +425,10 @@ pub async fn single_note(
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -460,10 +460,10 @@ pub async fn single_note_with_str(
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -500,10 +500,10 @@ pub async fn maybe_update_note(
         .body(Body::from(serde_json::to_vec(&payload).unwrap()))
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -535,10 +535,10 @@ pub async fn myabe_delete_note(
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -558,10 +558,10 @@ pub async fn current_user(app: &mut Router, access_token: &str) -> (StatusCode, 
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -585,10 +585,10 @@ pub async fn single_user(
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -617,10 +617,10 @@ pub async fn maybe_delete_user(
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -640,10 +640,10 @@ pub async fn list_users(app: &mut Router, access_token: &str) -> (StatusCode, Op
         .body(Body::empty())
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,
@@ -678,10 +678,10 @@ pub async fn maybe_create_user_with_password(
         .body(Body::from(serde_json::to_vec(&payload).unwrap()))
         .unwrap();
 
-    let response = app.ready().await.unwrap().call(request).await.unwrap();
+    let response = app.call(request).await.unwrap();
     let status_code = response.status();
 
-    let body = hyper::body::to_bytes(response.into_body()).await.unwrap();
+    let body = response.into_body().collect().await.unwrap().to_bytes();
 
     (
         status_code,

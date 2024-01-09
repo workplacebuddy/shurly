@@ -10,7 +10,7 @@ use std::net::SocketAddr;
 use anyhow::Result;
 use axum::Extension;
 use axum::Router;
-use axum::Server;
+use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::prelude::*;
 
@@ -49,10 +49,14 @@ async fn main() -> Result<()> {
     let address = setup_address()?;
     tracing::info!("Listening on {}", address);
 
-    Server::bind(&address)
-        .serve(app.into_make_service_with_connect_info::<SocketAddr>())
-        .with_graceful_shutdown(graceful_shutdown::handler())
-        .await?;
+    let listener = TcpListener::bind(address).await?;
+
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .with_graceful_shutdown(graceful_shutdown::handler())
+    .await?;
 
     Ok(())
 }

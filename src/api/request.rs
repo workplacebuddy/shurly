@@ -1,16 +1,14 @@
 //! API request helpers
 
 use axum::async_trait;
-use axum::body::HttpBody;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::rejection::PathRejection;
 use axum::extract::FromRequest;
 use axum::extract::FromRequestParts;
 use axum::extract::Json;
 use axum::extract::Path;
+use axum::extract::Request;
 use axum::http::request::Parts;
-use axum::http::request::Request;
-use axum::BoxError;
 use serde::de::DeserializeOwned;
 use unicode_normalization::UnicodeNormalization;
 use url::Url;
@@ -86,17 +84,14 @@ fn handle_json<J>(json: Result<Json<J>, JsonRejection>) -> Result<J, Error> {
 pub struct Form<F>(pub F);
 
 #[async_trait]
-impl<S, B, F> FromRequest<S, B> for Form<F>
+impl<S, F> FromRequest<S> for Form<F>
 where
     S: Send + Sync,
-    B: HttpBody + Send + 'static,
-    B::Data: Send,
-    B::Error: Into<BoxError>,
     F: DeserializeOwned + Send,
 {
     type Rejection = Error;
 
-    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let json = Result::<Json<F>, JsonRejection>::from_request(req, state)
             .await
             .map_err(|_| Error::internal_server_error("Could not extract form"))?;
