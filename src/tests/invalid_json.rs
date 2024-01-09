@@ -9,7 +9,7 @@ async fn test_invalid_json() {
     let access_token = helper::login(&mut app).await;
 
     // missing data
-    let body = r#"{}"#;
+    let body = r"{}";
     let (status_code, _, error) =
         helper::maybe_create_destination_with_raw_body(&mut app, &access_token, body, true).await;
     assert_eq!(StatusCode::BAD_REQUEST, status_code);
@@ -48,7 +48,7 @@ async fn test_invalid_json() {
     );
 
     // missing content type
-    let body = r#"{}"#;
+    let body = r"{}";
     let (status_code, _, error) =
         helper::maybe_create_destination_with_raw_body(&mut app, &access_token, body, false).await;
     assert_eq!(StatusCode::BAD_REQUEST, status_code);

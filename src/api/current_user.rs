@@ -61,12 +61,14 @@ struct Claims {
 #[derive(Debug, Serialize)]
 pub struct Token {
     /// Type of the token: Bearer
+    #[allow(clippy::struct_field_names)] // `type` is a reserved keyword
     token_type: String,
 
     /// In how many seconds does the token expire
     expires_in: i64,
 
     /// The access token to provide to follow up requests in the Authorization header
+    #[allow(clippy::struct_field_names)] // `access_token` is the name of the field
     access_token: String,
 }
 
