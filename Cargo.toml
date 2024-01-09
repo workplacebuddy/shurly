@@ -38,7 +38,7 @@ percent-encoding = "2.3.1"
 unicode-normalization = "0.1.22"
 
 [dependencies.sqlx]
-version = "0.7.1"
+version = "0.7.3"
 optional = true
 default-features = false
 features = [
