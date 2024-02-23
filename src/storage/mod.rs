@@ -12,39 +12,12 @@ use crate::notes::Note;
 use crate::users::Role;
 use crate::users::User;
 
-// Always included memory storage in builds
-//
-// Using the `postgres` feature removed the entire `mod memory` from the
-// build, same if you're using `--all-features` for testing. For now we
-// always include it and allow the unused module, this will properly run
-// clippy and check over the memory storage with `--all-features`.
-//
-// In the future we want something more robust to handle this..
-#[allow(unused_imports)]
-use memory::Memory;
-#[cfg(feature = "postgres")]
-use postgres::Postgres;
+pub use postgres::Postgres;
 
-mod memory;
-#[cfg(feature = "postgres")]
 mod postgres;
-
-/// Setup the storage
-#[cfg(not(feature = "postgres"))]
-#[allow(clippy::unused_async)]
-pub async fn setup() -> Memory {
-    Memory::new()
-}
-
-/// Setup the storage
-#[cfg(feature = "postgres")]
-pub async fn setup() -> Postgres {
-    Postgres::new().await
-}
 
 /// Storage errors
 #[derive(Debug, Error)]
-#[allow(dead_code)]
 pub enum Error {
     /// A connection error with the storage
     #[error("Connection error: {0}")]

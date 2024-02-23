@@ -8,10 +8,6 @@ FROM rust:1.70-slim as builder
 # Very nice
 WORKDIR /usr/src/shurly
 
-# Change Shurly features, "postgres" or "memory"
-ARG SHURLY_FEATURES="memory"
-ENV SHURLY_FEATURES=$SHURLY_FEATURES
-
 # Add the entire source
 COPY . .
 
@@ -22,7 +18,7 @@ ENV SQLX_OFFLINE true
 RUN --mount=type=cache,target=/usr/src/shurly/target \
     --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/usr/local/cargo/git \
-    cargo build --features=$SHURLY_FEATURES --release; \
+    cargo build --release; \
     # move binary out of cached directory, so the runtime can copy it
     objcopy --compress-debug-sections target/release/shurly ./shurly
 

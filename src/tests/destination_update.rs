@@ -2,9 +2,9 @@ use axum::http::StatusCode;
 
 use crate::tests::helper;
 
-#[tokio::test]
-async fn test_destination_update() {
-    let mut app = helper::setup_test_app().await;
+#[sqlx::test]
+async fn test_destination_update(pool: sqlx::PgPool) {
+    let mut app = helper::setup_test_app(pool).await;
 
     let access_token = helper::login(&mut app).await;
 

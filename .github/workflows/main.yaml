@@ -14,13 +14,22 @@ jobs:
   Test:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         rust: ["1.70", stable, beta]
-        features:
-          - default
-          - postgres
 
     runs-on: ${{ matrix.os }}
+
+    services:
+      postgres:
+        image: postgres:14-bullseye
+        ports:
+          - "5432:5432"
+        env:
+          POSTGRES_DB: shurly
+          POSTGRES_USER: shurly
+          POSTGRES_PASSWORD: verysecret
+        options: >-
+          --health-cmd "pg_isready"
 
     steps:
       - uses: actions/checkout@v4
@@ -30,8 +39,9 @@ jobs:
       - name: Use offline SQLx
         run: |
           echo "SQLX_OFFLINE=true" >> $GITHUB_ENV
+          echo "DATABASE_URL=postgres://shurly:verysecret@localhost:5432/shurly" >> $GITHUB_ENV
       - name: Build
-        run: cargo build --features ${{ matrix.features }}
+        run: cargo build
       - name: Test
         run: cargo test
 

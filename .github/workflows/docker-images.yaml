@@ -20,10 +20,6 @@ jobs:
 
     strategy:
       fail-fast: true
-      matrix:
-        features:
-          - memory
-          - postgres
 
     runs-on: ubuntu-latest
 
@@ -52,17 +48,15 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            suffix=-${{ matrix.features }},type=ref,event=branch
-            suffix=-${{ matrix.features }},type=semver,pattern={{version}}
-            suffix=-${{ matrix.features }},type=semver,pattern={{major}}.{{minor}}
-            suffix=-${{ matrix.features }},type=ref,event=pr
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=ref,event=pr
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          build-args: |
-            SHURLY_FEATURES=${{ matrix.features }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

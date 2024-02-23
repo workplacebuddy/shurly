@@ -9,11 +9,6 @@ repository = "https://github.com/workplacebuddy/shurly"
 readme = "README.md"
 rust-version = "1.70"
 
-[features]
-default = ["memory"]
-memory = []
-postgres = ["dep:sqlx"]
-
 [dependencies]
 anyhow = "1.0.79"
 argon2 = "0.5.2"
@@ -39,7 +34,6 @@ unicode-normalization = "0.1.22"
 
 [dependencies.sqlx]
 version = "0.7.3"
-optional = true
 default-features = false
 features = [
     "chrono",

@@ -49,12 +49,12 @@ pub struct Error {
 /// Setup the Shurly app
 ///
 /// Inject some environment variables to match our tests
-pub async fn setup_test_app() -> Router {
+pub async fn setup_test_app(pool: sqlx::PgPool) -> Router {
     std::env::set_var("INITIAL_USERNAME", "admin");
     std::env::set_var("INITIAL_PASSWORD", "verysecret");
     std::env::set_var("JWT_SECRET", "verysecret");
 
-    setup_app().await.unwrap()
+    setup_app(Some(pool)).await.unwrap()
 }
 
 pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>, String) {

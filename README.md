@@ -30,6 +30,13 @@ curl -v http://localhost:7000/the-one
 
 ## Getting started
 
+### Setup PostgreSQL database
+
+> An extra requirement is needed to actually run Shurly with a database, that is
+> an actual database. This can be setup separately, or the [Docker Compose] setup
+> can be used, which will run a PostgreSQL server container. In the end, Shurly
+> needs a a valid `DATABASE_URL` to be available.
+
 There are a couple of ways to run this, all depending on your preference:
 
 Shurly can be directly installed with `cargo install shurly`, this will place a
@@ -132,28 +139,17 @@ slug is not possible: creativity is key.
 
 There are a bunch more interactions available, but this should get you going.
 
-## With a PostgreSQL database
-
-By default Shurly runs its database in memory, loosing all data when it exits.
-This is not an ideal scenario when running Shurly in a production setting. This
-is why Shurly also comes with support for storing its database in a PostgreSQL
-database. To use this there is an optional feature that can be added to the
-installation.
 
 ```sh
 # Directly with Cargo
-cargo install shurly --features postgres
+cargo install shurly
 
 # Run locally
-cargo run --features postgres
+cargo run
 
 # Docker build (running is the same)
-docker build --build-arg SHURLY_FEATURES=postgres --tag shurly .
+docker build --tag shurly .
 ```
-
-An extra requirement is needed to actually run Shurly with a database, that is
-an actual database. This can be setup separately, or the [Docker Compose] setup
-can be used, which will run a PostgreSQL server container.
 
 A simple `docker compose up` will get you started. Use `docker compose up
 --build` to rebuild the Shurly image.
@@ -175,8 +171,7 @@ variable.
 For those who like to use Docker, but don't want to go through the hassle of
 building the images; pre-built images are available:
 
--   With `memory` feature: [`ghcr.io/workplacebuddy/shurly:master-memory`]
--   With `postgres` feature: [`ghcr.io/workplacebuddy/shurly:master-postgres`]
+-   [`ghcr.io/workplacebuddy/shurly:master`]
 -   More information and tags available here:
     https://github.com/workplacebuddy/shurly/pkgs/container/shurly
 
@@ -206,7 +201,7 @@ JWT_SECRET=
 
 ### Database connection
 
-Connection string for PostgreSQL server (only required for `postgres` feature).
+Connection string for PostgreSQL server.
 When running the Docker Compose setup this will be provided.
 
 ```sh
@@ -276,7 +271,7 @@ created with the `rust:1.65-slim` base image.
 -   [ ] Add aliases for destinations, so hits count for the original
 -   [x] A somewhat attractive 404 page, ~~or a default destination?~~
 -   [ ] Description of all the API endpoints
--   [ ] Run tests with the `postgres` feature
+-   [x] Run tests on an actual database
 
 > And, don't call me Shirly.
 
@@ -284,5 +279,4 @@ created with the `rust:1.65-slim` base image.
 [docker compose]: https://docs.docker.com/compose/
 [`tracing`]: https://lib.rs/crates/tracing
 [other options]: https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md
-[`ghcr.io/workplacebuddy/shurly:master-memory`]: https://github.com/workplacebuddy/shurly/pkgs/container/shurly
-[`ghcr.io/workplacebuddy/shurly:master-postgres`]: https://github.com/workplacebuddy/shurly/pkgs/container/shurly
+[`ghcr.io/workplacebuddy/shurly:master`]: https://github.com/workplacebuddy/shurly/pkgs/container/shurly

@@ -2,9 +2,9 @@ use axum::http::StatusCode;
 
 use crate::tests::helper;
 
-#[tokio::test]
-async fn test_change_password() {
-    let mut app = helper::setup_test_app().await;
+#[sqlx::test]
+async fn test_change_password(pool: sqlx::PgPool) {
+    let mut app = helper::setup_test_app(pool).await;
 
     // setup
     let password = "verysecret";

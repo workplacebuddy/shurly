@@ -2,9 +2,9 @@ use axum::http::StatusCode;
 
 use crate::tests::helper;
 
-#[tokio::test]
-async fn test_notes() {
-    let mut app = helper::setup_test_app().await;
+#[sqlx::test]
+async fn test_notes(pool: sqlx::PgPool) {
+    let mut app = helper::setup_test_app(pool).await;
 
     let access_token = helper::login(&mut app).await;
 
@@ -85,9 +85,9 @@ async fn test_notes() {
     assert_eq!(Some("Note not found".to_string()), error);
 }
 
-#[tokio::test]
-async fn test_note_invalid_id() {
-    let mut app = helper::setup_test_app().await;
+#[sqlx::test]
+async fn test_note_invalid_id(pool: sqlx::PgPool) {
+    let mut app = helper::setup_test_app(pool).await;
 
     let access_token = helper::login(&mut app).await;
 

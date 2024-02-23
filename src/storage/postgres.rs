@@ -135,6 +135,13 @@ impl Postgres {
             .await
             .expect("Valid connection");
 
+        Self::new_with_pool(connection_pool).await
+    }
+
+    /// Create Postgres storage with existing pool
+    ///
+    /// Migrations will be run
+    pub async fn new_with_pool(connection_pool: PgPool) -> Self {
         let migration_result = MIGRATOR.run(&connection_pool).await;
 
         if let Err(err) = migration_result {

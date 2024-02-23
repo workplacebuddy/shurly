@@ -10,13 +10,13 @@ use std::net::SocketAddr;
 use anyhow::Result;
 use axum::Extension;
 use axum::Router;
+use storage::Postgres;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::prelude::*;
 
 use crate::api::router;
 use crate::api::JwtKeys;
-use crate::storage::setup;
 use crate::storage::Storage;
 use crate::users::ensure_initial_user;
 use crate::utils::env_var_or_else;
@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
     setup_environment();
     setup_tracing();
 
-    let app = setup_app().await?;
+    let app = setup_app(None).await?;
 
     let address = setup_address()?;
     tracing::info!("Listening on {}", address);
@@ -68,8 +68,12 @@ async fn main() -> Result<()> {
 /// Will return `Err` if any of its dependencies fail to load:
 /// - Database connection
 /// - Initial user setup
-pub async fn setup_app() -> Result<Router> {
-    let storage = setup().await;
+pub async fn setup_app(existing_pool: Option<sqlx::PgPool>) -> Result<Router> {
+    let storage = if let Some(existing_pool) = existing_pool {
+        Postgres::new_with_pool(existing_pool).await
+    } else {
+        Postgres::new().await
+    };
 
     ensure_initial_user(&storage).await?;
 

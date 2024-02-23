@@ -4,9 +4,9 @@ use percent_encoding::NON_ALPHANUMERIC;
 
 use crate::tests::helper;
 
-#[tokio::test]
-async fn test_emoji_slug() {
-    let mut app = helper::setup_test_app().await;
+#[sqlx::test]
+async fn test_emoji_slug(pool: sqlx::PgPool) {
+    let mut app = helper::setup_test_app(pool).await;
 
     let access_token = helper::login(&mut app).await;
 
