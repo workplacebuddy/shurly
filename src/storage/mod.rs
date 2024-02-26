@@ -12,6 +12,7 @@ use crate::notes::Note;
 use crate::users::Role;
 use crate::users::User;
 
+pub use postgres::Config as PostgresConfig;
 pub use postgres::Postgres;
 
 mod postgres;

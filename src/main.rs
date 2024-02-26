@@ -11,6 +11,7 @@ use anyhow::Result;
 use axum::Extension;
 use axum::Router;
 use storage::Postgres;
+use storage::PostgresConfig;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::prelude::*;
@@ -44,7 +45,7 @@ async fn main() -> Result<()> {
     setup_environment();
     setup_tracing();
 
-    let app = setup_app(None).await?;
+    let app = setup_app(PostgresConfig::DetectConfig).await?;
 
     let address = setup_address()?;
     tracing::info!("Listening on {}", address);
@@ -68,12 +69,8 @@ async fn main() -> Result<()> {
 /// Will return `Err` if any of its dependencies fail to load:
 /// - Database connection
 /// - Initial user setup
-pub async fn setup_app(existing_pool: Option<sqlx::PgPool>) -> Result<Router> {
-    let storage = if let Some(existing_pool) = existing_pool {
-        Postgres::new_with_pool(existing_pool).await
-    } else {
-        Postgres::new().await
-    };
+pub async fn setup_app(config: PostgresConfig) -> Result<Router> {
+    let storage = Postgres::from_config(config).await;
 
     ensure_initial_user(&storage).await?;
 

@@ -14,6 +14,7 @@ use tower::Service;
 use uuid::Uuid;
 
 use crate::setup_app;
+use crate::storage::PostgresConfig;
 
 /// Test helper version of User struct
 #[derive(Debug)]
@@ -54,7 +55,9 @@ pub async fn setup_test_app(pool: sqlx::PgPool) -> Router {
     std::env::set_var("INITIAL_PASSWORD", "verysecret");
     std::env::set_var("JWT_SECRET", "verysecret");
 
-    setup_app(Some(pool)).await.unwrap()
+    setup_app(PostgresConfig::ExistingConnection(pool))
+        .await
+        .unwrap()
 }
 
 pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>, String) {

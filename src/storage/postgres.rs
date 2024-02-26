@@ -112,6 +112,15 @@ impl AuditEntryType {
     }
 }
 
+/// Postgres configuration
+pub enum Config {
+    /// Detect configuration from environment
+    DetectConfig,
+
+    /// Use existing connection
+    ExistingConnection(PgPool),
+}
+
 /// Postgres storage
 #[derive(Clone)]
 pub struct Postgres {
@@ -120,12 +129,20 @@ pub struct Postgres {
 }
 
 impl Postgres {
+    /// Create a new Postgres storage
+    pub async fn from_config(config: Config) -> Self {
+        match config {
+            Config::DetectConfig => Self::new().await,
+            Config::ExistingConnection(pool) => Self::new_with_pool(pool).await,
+        }
+    }
+
     /// Create Postgres storage
     ///
     /// Use the `DATABASE_URL` environment variable
     ///
     /// Migrations will be run
-    pub async fn new() -> Self {
+    async fn new() -> Self {
         let database_connection_string = std::env::var("DATABASE_URL").expect("Valid DATABASE_URL");
 
         let connection_pool = PgPoolOptions::new()
@@ -141,7 +158,7 @@ impl Postgres {
     /// Create Postgres storage with existing pool
     ///
     /// Migrations will be run
-    pub async fn new_with_pool(connection_pool: PgPool) -> Self {
+    async fn new_with_pool(connection_pool: PgPool) -> Self {
         let migration_result = MIGRATOR.run(&connection_pool).await;
 
         if let Err(err) = migration_result {
