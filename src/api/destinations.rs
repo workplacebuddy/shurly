@@ -88,9 +88,9 @@ impl DestinationResponse {
 /// ```json
 /// { "data": [ { "id": "<uuid>", "slug": "some-easy-name" ... } ] }
 /// ```
-pub async fn list<S: Storage>(
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn list(
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
 ) -> Result<Success<Vec<DestinationResponse>>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
@@ -117,9 +117,9 @@ pub async fn list<S: Storage>(
 /// ```json
 /// { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
 /// ```
-pub async fn single<S: Storage>(
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn single(
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
 ) -> Result<Success<DestinationResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
@@ -163,10 +163,10 @@ pub struct CreateDestinationForm {
 /// ```json
 /// { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
 /// ```
-pub async fn create<S: Storage>(
-    audit_trail: AuditTrail<S>,
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn create(
+    audit_trail: AuditTrail,
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     Form(form): Form<CreateDestinationForm>,
 ) -> Result<Success<DestinationResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
@@ -241,10 +241,10 @@ pub struct UpdateDestinationForm {
 /// ```json
 /// { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
 /// ```
-pub async fn update<S: Storage>(
-    audit_trail: AuditTrail<S>,
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn update(
+    audit_trail: AuditTrail,
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
     Form(form): Form<UpdateDestinationForm>,
 ) -> Result<Success<DestinationResponse>, Error> {
@@ -291,10 +291,10 @@ pub async fn update<S: Storage>(
 ///     -H 'Authorization: Bearer tokentokentoken' \
 ///     http://localhost:7000/api/destinations/<uuid>
 /// ```
-pub async fn delete<S: Storage>(
-    audit_trail: AuditTrail<S>,
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn delete(
+    audit_trail: AuditTrail,
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
 ) -> Result<Success<&'static str>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
@@ -318,10 +318,7 @@ pub async fn delete<S: Storage>(
 }
 
 /// Fetch destination from storage
-async fn fetch_destination<S: Storage>(
-    storage: &S,
-    destination_id: &Uuid,
-) -> Result<Destination, Error> {
+async fn fetch_destination(storage: &Storage, destination_id: &Uuid) -> Result<Destination, Error> {
     storage
         .find_single_destination_by_id(destination_id)
         .await

@@ -27,10 +27,10 @@ const ERROR: &str = include_str!("pages/500.html");
 /// All wildcard requests end up in this function.
 ///
 /// A lookup in storage will be done looking for the right slug, based on the path
-pub async fn root<S: Storage>(
+pub async fn root(
     ip_address: Option<InsecureClientIp>,
     user_agent: Option<TypedHeader<UserAgent>>,
-    Extension(storage): Extension<S>,
+    Extension(storage): Extension<Storage>,
     uri: Uri,
 ) -> Result<Redirect, (StatusCode, Html<String>)> {
     let slug = uri.path().trim_matches('/');

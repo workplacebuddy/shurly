@@ -70,7 +70,7 @@ async fn main() -> Result<()> {
 /// - Database connection
 /// - Initial user setup
 pub async fn setup_app(config: PostgresConfig) -> Result<Router> {
-    let storage = Postgres::from_config(config).await;
+    let storage = Storage::Postgres(Postgres::from_config(config).await);
 
     ensure_initial_user(&storage).await?;
 
@@ -78,12 +78,12 @@ pub async fn setup_app(config: PostgresConfig) -> Result<Router> {
 }
 
 /// Create the router for Shurly
-fn create_router<S: Storage>(storage: S) -> Router {
+fn create_router(storage: Storage) -> Router {
     let jwt_keys = setup_jwt_keys();
 
     Router::new()
-        .nest("/api", router::<S>())
-        .fallback(root::root::<S>)
+        .nest("/api", router())
+        .fallback(root::root)
         .layer(TraceLayer::new_for_http())
         .layer(Extension(storage))
         .layer(Extension(jwt_keys))

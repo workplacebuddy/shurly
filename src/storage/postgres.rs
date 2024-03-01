@@ -3,9 +3,6 @@
 use std::net::IpAddr;
 use std::time::Duration;
 
-use axum::async_trait;
-use chrono::NaiveDateTime;
-use sqlx::migrate::Migrator;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
@@ -13,9 +10,12 @@ use uuid::Uuid;
 
 use crate::destinations::Destination;
 use crate::notes::Note;
-use crate::users::Role;
 use crate::users::User;
 
+use super::database::AuditEntryType;
+use super::database::SqlxUser;
+use super::database::UserRoleType;
+use super::database::MIGRATOR;
 use super::AuditEntry;
 use super::ChangePasswordValues;
 use super::CreateDestinationValues;
@@ -23,94 +23,8 @@ use super::CreateNoteValues;
 use super::CreateUserValues;
 use super::Error;
 use super::Result;
-use super::Storage;
 use super::UpdateDestinationValues;
 use super::UpdateNoteValues;
-
-/// Migrator to run migrations on startup
-static MIGRATOR: Migrator = sqlx::migrate!();
-
-/// Postgres type for user role
-#[derive(PartialEq, Debug, sqlx::Type)]
-#[sqlx(type_name = "user_role_type")]
-#[sqlx(rename_all = "kebab-case")]
-enum UserRoleType {
-    /// Admin
-    Admin,
-
-    /// Manager
-    Manager,
-}
-
-impl UserRoleType {
-    /// Create user role type from role
-    fn from_role(role: Role) -> Self {
-        match role {
-            Role::Admin => UserRoleType::Admin,
-            Role::Manager => UserRoleType::Manager,
-        }
-    }
-
-    /// Create role from user role type
-    fn to_role(&self) -> Role {
-        match self {
-            UserRoleType::Admin => Role::Admin,
-            UserRoleType::Manager => Role::Manager,
-        }
-    }
-}
-
-/// Postgres type for audit trail entry type
-#[derive(PartialEq, Debug, sqlx::Type)]
-#[sqlx(type_name = "audit_trail_entry_type")]
-#[sqlx(rename_all = "kebab-case")]
-enum AuditEntryType {
-    /// User is created
-    CreateUser,
-
-    /// User has changed password
-    ChangePassword,
-
-    /// User is deleted
-    DeleteUser,
-
-    /// Destination is created
-    CreateDestination,
-
-    /// Destination is updated
-    UpdateDestination,
-
-    /// Destination is deleted
-    DeleteDestination,
-
-    /// Note is deleted
-    CreateNote,
-
-    /// Note is updated
-    UpdateNote,
-
-    /// Note is deleted
-    DeleteNote,
-}
-
-impl AuditEntryType {
-    /// Create audit entry type type from audit entry
-    fn from_audit_entry(entry: &AuditEntry) -> Self {
-        match entry {
-            AuditEntry::CreateUser(_) => Self::CreateUser,
-            AuditEntry::ChangePassword(_) => Self::ChangePassword,
-            AuditEntry::DeleteUser(_) => Self::DeleteUser,
-
-            AuditEntry::CreateDestination(_) => Self::CreateDestination,
-            AuditEntry::UpdateDestination(_) => Self::UpdateDestination,
-            AuditEntry::DeleteDestination(_) => Self::DeleteDestination,
-
-            AuditEntry::CreateNote(_, _) => Self::CreateNote,
-            AuditEntry::UpdateNote(_, _) => Self::UpdateNote,
-            AuditEntry::DeleteNote(_, _) => Self::DeleteNote,
-        }
-    }
-}
 
 /// Postgres configuration
 pub enum Config {
@@ -169,67 +83,13 @@ impl Postgres {
     }
 }
 
-/// Postgres version of user
-struct PostgresUser {
-    /// User ID
-    id: Uuid,
-
-    /// Sessions ID
-    session_id: Uuid,
-
-    /// Username
-    username: String,
-
-    /// Hashed password
-    hashed_password: String,
-
-    /// User role
-    role: UserRoleType,
-
-    /// Creation date
-    created_at: NaiveDateTime,
-
-    /// Last updated at
-    updated_at: NaiveDateTime,
-
-    /// Deleted at
-    deleted_at: Option<NaiveDateTime>,
-}
-
-impl User {
-    /// Create user from postgres version
-    fn from_postgres_user(user: PostgresUser) -> Self {
-        Self {
-            id: user.id,
-            session_id: user.session_id,
-            username: user.username,
-            hashed_password: user.hashed_password,
-            role: user.role.to_role(),
-            created_at: user.created_at,
-            updated_at: user.updated_at,
-            deleted_at: user.deleted_at,
-        }
-    }
-
-    /// Maybe create user from postgres version
-    fn from_postgres_user_optional(user: Option<PostgresUser>) -> Option<Self> {
-        user.map(Self::from_postgres_user)
-    }
-
-    /// Create multiple user from postgres version
-    fn from_postgres_user_multiple(mut users: Vec<PostgresUser>) -> Vec<Self> {
-        users
-            .drain(..)
-            .map(Self::from_postgres_user)
-            .collect::<Vec<Self>>()
-    }
-}
-
-#[async_trait]
-impl Storage for Postgres {
-    async fn find_any_single_user(&self) -> Result<Option<User>> {
+impl Postgres {
+    /// Find any single user
+    ///
+    /// Respects the soft-delete
+    pub async fn find_any_single_user(&self) -> Result<Option<User>> {
         let user = sqlx::query_as!(
-            PostgresUser,
+            SqlxUser,
             r#"
             SELECT
                 id,
@@ -247,15 +107,18 @@ impl Storage for Postgres {
         )
         .fetch_optional(&self.connection_pool)
         .await
-        .map(User::from_postgres_user_optional)
+        .map(User::from_sqlx_user_optional)
         .map_err(connection_error)?;
 
         Ok(user)
     }
 
-    async fn find_all_users(&self) -> Result<Vec<User>> {
+    /// Finds all users
+    ///
+    /// Respects the soft-delete
+    pub async fn find_all_users(&self) -> Result<Vec<User>> {
         let users = sqlx::query_as!(
-            PostgresUser,
+            SqlxUser,
             r#"
             SELECT
                 id,
@@ -272,15 +135,18 @@ impl Storage for Postgres {
         )
         .fetch_all(&self.connection_pool)
         .await
-        .map(User::from_postgres_user_multiple)
+        .map(User::from_sqlx_user_multiple)
         .map_err(connection_error)?;
 
         Ok(users)
     }
 
-    async fn find_single_user_by_username(&self, username: &str) -> Result<Option<User>> {
+    /// Finds a single user by its username
+    ///
+    /// Respects the soft-delete
+    pub async fn find_single_user_by_username(&self, username: &str) -> Result<Option<User>> {
         let user = sqlx::query_as!(
-            PostgresUser,
+            SqlxUser,
             r#"
             SELECT
                 id,
@@ -300,15 +166,18 @@ impl Storage for Postgres {
         )
         .fetch_optional(&self.connection_pool)
         .await
-        .map(User::from_postgres_user_optional)
+        .map(User::from_sqlx_user_optional)
         .map_err(connection_error)?;
 
         Ok(user)
     }
 
-    async fn find_single_user_by_id(&self, id: &Uuid) -> Result<Option<User>> {
+    /// Finds a single user by its ID
+    ///
+    /// Respects the soft-delete
+    pub async fn find_single_user_by_id(&self, id: &Uuid) -> Result<Option<User>> {
         let user = sqlx::query_as!(
-            PostgresUser,
+            SqlxUser,
             r#"
             SELECT
                 id,
@@ -328,15 +197,16 @@ impl Storage for Postgres {
         )
         .fetch_optional(&self.connection_pool)
         .await
-        .map(User::from_postgres_user_optional)
+        .map(User::from_sqlx_user_optional)
         .map_err(connection_error)?;
 
         Ok(user)
     }
 
-    async fn create_user(&self, values: &CreateUserValues) -> Result<User> {
+    /// Create a single user
+    pub async fn create_user(&self, values: &CreateUserValues<'_>) -> Result<User> {
         let user = sqlx::query_as!(
-            PostgresUser,
+            SqlxUser,
             r#"
             INSERT INTO users (id, session_id, username, hashed_password, role)
             VALUES ($1, $2, $3, $4, $5)
@@ -358,15 +228,20 @@ impl Storage for Postgres {
         )
         .fetch_one(&self.connection_pool)
         .await
-        .map(User::from_postgres_user)
+        .map(User::from_sqlx_user)
         .map_err(connection_error)?;
 
         Ok(user)
     }
 
-    async fn change_password(&self, user: &User, values: &ChangePasswordValues) -> Result<User> {
+    /// Change the password of a user
+    pub async fn change_password(
+        &self,
+        user: &User,
+        values: &ChangePasswordValues<'_>,
+    ) -> Result<User> {
         let user = sqlx::query_as!(
-            PostgresUser,
+            SqlxUser,
             r#"
             UPDATE users
             SET session_id = $1, hashed_password = $2, updated_at = CURRENT_TIMESTAMP
@@ -387,13 +262,14 @@ impl Storage for Postgres {
         )
         .fetch_one(&self.connection_pool)
         .await
-        .map(User::from_postgres_user)
+        .map(User::from_sqlx_user)
         .map_err(connection_error)?;
 
         Ok(user)
     }
 
-    async fn delete_user(&self, user: &User) -> Result<()> {
+    /// Soft-delete a user
+    pub async fn delete_user(&self, user: &User) -> Result<()> {
         sqlx::query!(
             r#"
             UPDATE users
@@ -409,7 +285,10 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn find_all_destinations(&self) -> Result<Vec<Destination>> {
+    /// Find all destinations
+    ///
+    /// Respects the soft-delete
+    pub async fn find_all_destinations(&self) -> Result<Vec<Destination>> {
         let destinations = sqlx::query_as!(
             Destination,
             r#"
@@ -426,7 +305,13 @@ impl Storage for Postgres {
         Ok(destinations)
     }
 
-    async fn find_single_destination_by_slug(&self, slug: &'_ str) -> Result<Option<Destination>> {
+    /// Find a single destination by slug
+    ///
+    /// DOES NOT respect the soft-delete, handle with care
+    pub async fn find_single_destination_by_slug(
+        &self,
+        slug: &'_ str,
+    ) -> Result<Option<Destination>> {
         let destination = sqlx::query_as!(
             Destination,
             r#"
@@ -444,7 +329,10 @@ impl Storage for Postgres {
         Ok(destination)
     }
 
-    async fn find_single_destination_by_id(&self, id: &Uuid) -> Result<Option<Destination>> {
+    /// Find a single destination by ID
+    ///
+    /// Respects the soft-delete
+    pub async fn find_single_destination_by_id(&self, id: &Uuid) -> Result<Option<Destination>> {
         let destination = sqlx::query_as!(
             Destination,
             r#"
@@ -462,7 +350,11 @@ impl Storage for Postgres {
         Ok(destination)
     }
 
-    async fn create_destination(&self, values: &CreateDestinationValues) -> Result<Destination> {
+    /// Create a destination
+    pub async fn create_destination(
+        &self,
+        values: &CreateDestinationValues<'_>,
+    ) -> Result<Destination> {
         let destination = sqlx::query_as!(
             Destination,
             r#"
@@ -483,10 +375,11 @@ impl Storage for Postgres {
         Ok(destination)
     }
 
-    async fn update_destination(
+    /// Update a single destination
+    pub async fn update_destination(
         &self,
         destination: &Destination,
-        values: &UpdateDestinationValues,
+        values: &UpdateDestinationValues<'_>,
     ) -> Result<Destination> {
         let updated_destination = sqlx::query_as!(
             Destination,
@@ -510,7 +403,8 @@ impl Storage for Postgres {
         Ok(updated_destination)
     }
 
-    async fn delete_destination(&self, destination: &Destination) -> Result<()> {
+    /// Soft-delete a destination
+    pub async fn delete_destination(&self, destination: &Destination) -> Result<()> {
         sqlx::query!(
             r#"
             UPDATE destinations
@@ -526,7 +420,13 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn find_all_notes_by_destination(&self, destination: &Destination) -> Result<Vec<Note>> {
+    /// Find all notes of a destination
+    ///
+    /// Respects the soft-delete
+    pub async fn find_all_notes_by_destination(
+        &self,
+        destination: &Destination,
+    ) -> Result<Vec<Note>> {
         let notes = sqlx::query_as!(
             Note,
             r#"
@@ -543,7 +443,10 @@ impl Storage for Postgres {
         Ok(notes)
     }
 
-    async fn find_single_note_by_id(
+    /// Find single note of a destination
+    ///
+    /// Respects the soft-delete
+    pub async fn find_single_note_by_id(
         &self,
         destination_id: &Uuid,
         note_id: &Uuid,
@@ -566,10 +469,11 @@ impl Storage for Postgres {
         Ok(note)
     }
 
-    async fn create_note(
+    /// Create a note
+    pub async fn create_note(
         &self,
         destination: &Destination,
-        values: &CreateNoteValues,
+        values: &CreateNoteValues<'_>,
     ) -> Result<Note> {
         let note = sqlx::query_as!(
             Note,
@@ -590,7 +494,8 @@ impl Storage for Postgres {
         Ok(note)
     }
 
-    async fn update_note(&self, note: &Note, values: &UpdateNoteValues) -> Result<Note> {
+    /// Update a note
+    pub async fn update_note(&self, note: &Note, values: &UpdateNoteValues<'_>) -> Result<Note> {
         let updated_note = sqlx::query_as!(
             Note,
             r#"
@@ -609,7 +514,8 @@ impl Storage for Postgres {
         Ok(updated_note)
     }
 
-    async fn delete_note(&self, note: &Note) -> Result<()> {
+    /// Soft-delete a note
+    pub async fn delete_note(&self, note: &Note) -> Result<()> {
         sqlx::query!(
             r#"
             UPDATE notes
@@ -625,7 +531,8 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn save_hit(
+    /// Save a hit on a destination
+    pub async fn save_hit(
         &self,
         destination: &Destination,
         ip_address: Option<&IpAddr>,
@@ -650,10 +557,11 @@ impl Storage for Postgres {
         Ok(())
     }
 
-    async fn register_audit_trail(
+    /// Register a creative/destructive action on the audit trail
+    pub async fn register_audit_trail(
         &self,
         created_by: &User,
-        entry: &AuditEntry,
+        entry: &AuditEntry<'_>,
         ip_address: Option<&IpAddr>,
     ) -> Result<()> {
         let (user_id, destination_id, note_id) = match entry {

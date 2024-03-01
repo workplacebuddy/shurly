@@ -76,9 +76,9 @@ impl NoteResponse {
 /// ```json
 /// { "data": [ { "id": "<uuid>", "content": "Used on the 26-07 ad campaign" ... } ] }
 /// ```
-pub async fn list<S: Storage>(
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn list(
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
 ) -> Result<Success<Vec<NoteResponse>>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
@@ -106,9 +106,9 @@ pub async fn list<S: Storage>(
 /// ```json
 /// { "data": { "id": "<uuid>", "content": "Used on the 26-07 ad campaign" ... } }
 /// ```
-pub async fn single<S: Storage>(
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn single(
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters((destination_id, note_id)): PathParameters<(Uuid, Uuid)>,
 ) -> Result<Success<NoteResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
@@ -144,10 +144,10 @@ pub struct CreateNoteForm {
 /// ```json
 /// { "data": { "id": "<uuid>", "slug": "Used on the 26-07 ad campaign" ... } }
 /// ```
-pub async fn create<S: Storage>(
-    audit_trail: AuditTrail<S>,
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn create(
+    audit_trail: AuditTrail,
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
     Form(form): Form<CreateNoteForm>,
 ) -> Result<Success<NoteResponse>, Error> {
@@ -197,10 +197,10 @@ pub struct UpdateNoteForm {
 /// ```json
 /// { "data": { "id": "<uuid>", "slug": "Used on the 26-07 ad campaign" ... } }
 /// ```
-pub async fn update<S: Storage>(
-    audit_trail: AuditTrail<S>,
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn update(
+    audit_trail: AuditTrail,
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters((destination_id, note_id)): PathParameters<(Uuid, Uuid)>,
     Form(form): Form<UpdateNoteForm>,
 ) -> Result<Success<NoteResponse>, Error> {
@@ -235,10 +235,10 @@ pub async fn update<S: Storage>(
 ///     -H 'Authorization: Bearer tokentokentoken' \
 ///     http://localhost:7000/api/destinations/<uuid>/notes/<uuid>
 /// ```
-pub async fn delete<S: Storage>(
-    audit_trail: AuditTrail<S>,
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn delete(
+    audit_trail: AuditTrail,
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters((destination_id, note_id)): PathParameters<(Uuid, Uuid)>,
 ) -> Result<Success<&'static str>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
@@ -259,10 +259,7 @@ pub async fn delete<S: Storage>(
 }
 
 /// Fetch destination from storage
-async fn fetch_destination<S: Storage>(
-    storage: &S,
-    destination_id: &Uuid,
-) -> Result<Destination, Error> {
+async fn fetch_destination(storage: &Storage, destination_id: &Uuid) -> Result<Destination, Error> {
     storage
         .find_single_destination_by_id(destination_id)
         .await
@@ -271,8 +268,8 @@ async fn fetch_destination<S: Storage>(
 }
 
 /// Fetch note from storage
-async fn fetch_note<S: Storage>(
-    storage: &S,
+async fn fetch_note(
+    storage: &Storage,
     destination_id: &Uuid,
     note_id: &Uuid,
 ) -> Result<Note, Error> {

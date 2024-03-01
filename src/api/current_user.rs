@@ -2,7 +2,6 @@
 //!
 //! Get the current user from the request based on the Authorization header
 
-use std::marker::PhantomData;
 use std::ops::Deref;
 use std::sync::Arc;
 
@@ -85,25 +84,21 @@ impl Token {
 
 /// Current user service
 #[derive(Clone)]
-pub struct CurrentUser<S: Storage> {
+pub struct CurrentUser {
     /// The actual user
     user: Arc<User>,
-
-    /// The storage the user came from, as some phantom data
-    storage: PhantomData<S>,
 }
 
-impl<S: Storage> CurrentUser<S> {
+impl CurrentUser {
     /// Create the current user from a user
     fn new(user: User) -> Self {
         Self {
             user: Arc::new(user),
-            storage: PhantomData,
         }
     }
 }
 
-impl<S: Storage> Deref for CurrentUser<S> {
+impl Deref for CurrentUser {
     type Target = User;
 
     fn deref(&self) -> &Self::Target {
@@ -130,10 +125,9 @@ pub fn generate_token(jwt_keys: &JwtKeys, user: &User) -> Result<Token, Error> {
 }
 
 #[async_trait]
-impl<B, S> FromRequestParts<B> for CurrentUser<S>
+impl<B> FromRequestParts<B> for CurrentUser
 where
     B: Send + Sync,
-    S: Storage,
 {
     type Rejection = Error;
 
@@ -153,7 +147,7 @@ where
             .map_err(|_| Error::internal_server_error("Could not get JWT keys"))?;
 
         let Extension(storage) = parts
-            .extract::<Extension<S>>()
+            .extract::<Extension<Storage>>()
             .await
             .map_err(|_| Error::internal_server_error("Could not get a storage pool"))?;
 

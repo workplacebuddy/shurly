@@ -16,18 +16,18 @@ use super::CurrentUser;
 use super::Error;
 
 /// Audit trail service
-pub struct AuditTrail<S: Storage> {
+pub struct AuditTrail {
     /// Storage in where the trail is saved
-    storage: S,
+    storage: Storage,
 
     /// The current user for the audit trail
-    current_user: CurrentUser<S>,
+    current_user: CurrentUser,
 
     /// The IP address associated with the audit trail
     ip_address: Option<IpAddr>,
 }
 
-impl<S: Storage> AuditTrail<S> {
+impl AuditTrail {
     /// Register an entry on the audit trail
     pub async fn register(&self, entry: AuditEntry<'_>) {
         let result = self
@@ -42,7 +42,7 @@ impl<S: Storage> AuditTrail<S> {
 }
 
 #[async_trait]
-impl<B, S: Storage> FromRequestParts<B> for AuditTrail<S>
+impl<B> FromRequestParts<B> for AuditTrail
 where
     B: Send + Sync,
 {
@@ -50,7 +50,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &B) -> Result<Self, Self::Rejection> {
         let Extension(storage) = parts
-            .extract::<Extension<S>>()
+            .extract::<Extension<Storage>>()
             .await
             .map_err(|_| Error::internal_server_error("Could not get a storage pool"))?;
 

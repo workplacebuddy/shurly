@@ -98,9 +98,9 @@ pub struct LoginForm {
 /// ```json
 /// { "data": { "type": "Bearer", "access_token": "some token" } }
 /// ```
-pub async fn token<S: Storage>(
+pub async fn token(
     Extension(jwt_keys): Extension<JwtKeys>,
-    Extension(storage): Extension<S>,
+    Extension(storage): Extension<Storage>,
     Form(form): Form<LoginForm>,
 ) -> Result<Success<Token>, Error> {
     let user = storage
@@ -134,9 +134,9 @@ pub async fn token<S: Storage>(
 /// ```json
 /// { "data": [ { "id": "<uuid>", "username": "some-username" ... } ] }
 /// ```
-pub async fn list<S: Storage>(
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn list(
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
 ) -> Result<Success<Vec<UserResponse>>, Error> {
     current_user.role.is_allowed(Role::Admin)?;
 
@@ -170,9 +170,9 @@ pub async fn list<S: Storage>(
 /// ```json
 /// { "data": { "id": "<uuid>", "username": "some-username" ... } }
 /// ```
-pub async fn single<S: Storage>(
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn single(
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters(params): PathParameters<HashMap<String, Uuid>>,
 ) -> Result<Success<UserResponse>, Error> {
     let user = if let Some(user_id) = params.get("user") {
@@ -215,10 +215,10 @@ pub struct CreateUserForm {
 /// ```json
 /// { "data": { "id": "<uuid>", "username": "some-other-username", "password": "veryverysecret" } }
 /// ```
-pub async fn create<S: Storage>(
-    audit_trail: AuditTrail<S>,
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn create(
+    audit_trail: AuditTrail,
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     Form(form): Form<CreateUserForm>,
 ) -> Result<Success<UserResponse>, Error> {
     current_user.role.is_allowed(Role::Admin)?;
@@ -301,11 +301,11 @@ pub struct ChangePasswordForm {
 /// ```json
 /// { "data": { "type": "Bearer", "access_token": "some token" } }
 /// ```
-pub async fn change_password<S: Storage>(
-    audit_trail: AuditTrail<S>,
+pub async fn change_password(
+    audit_trail: AuditTrail,
     Extension(jwt_keys): Extension<JwtKeys>,
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters(params): PathParameters<HashMap<String, Uuid>>,
     Form(form): Form<ChangePasswordForm>,
 ) -> Result<Success<Token>, Error> {
@@ -351,10 +351,10 @@ pub async fn change_password<S: Storage>(
 ///     -H 'Authorization: Bearer tokentokentoken' \
 ///     http://localhost:7000/api/users/<uuid>
 /// ```
-pub async fn delete<S: Storage>(
-    audit_trail: AuditTrail<S>,
-    Extension(storage): Extension<S>,
-    current_user: CurrentUser<S>,
+pub async fn delete(
+    audit_trail: AuditTrail,
+    Extension(storage): Extension<Storage>,
+    current_user: CurrentUser,
     PathParameters(user_id): PathParameters<Uuid>,
 ) -> Result<Success<&'static str>, Error> {
     current_user.role.is_allowed(Role::Admin)?;
@@ -372,7 +372,7 @@ pub async fn delete<S: Storage>(
 }
 
 /// Fetch a user from storage
-async fn fetch_user<S: Storage>(storage: &S, user_id: &Uuid) -> Result<User, Error> {
+async fn fetch_user(storage: &Storage, user_id: &Uuid) -> Result<User, Error> {
     storage
         .find_single_user_by_id(user_id)
         .await
