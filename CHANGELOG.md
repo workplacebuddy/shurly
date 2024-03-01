@@ -4,6 +4,12 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.2.4
+
+### Fixes
+
+-   Upgrade to latest h2 (0.4.2) — Fixes GHSA-8r5v-vm4m-4g25
+
 ## Version 0.2.3
 
 ### Fixes
