@@ -11,7 +11,7 @@ rust-version = "1.70"
 
 [dependencies]
 anyhow = "1.0.80"
-argon2 = "0.5.2"
+argon2 = "0.5.3"
 axum = "0.7.3"
 axum-client-ip = "0.5.0"
 axum-extra = { version = "0.9.1", features = ["typed-header"] }
