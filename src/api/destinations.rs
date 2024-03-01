@@ -174,6 +174,10 @@ pub async fn create(
     let slug = parse_slug(&form.slug)?;
     let url = parse_url(&form.url)?;
 
+    if slug.starts_with("api/") {
+        return Err(Error::bad_request("Slug can not start with 'api/'"));
+    }
+
     let destination = database
         .find_single_destination_by_slug(&slug)
         .await

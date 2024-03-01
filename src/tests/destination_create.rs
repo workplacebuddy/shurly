@@ -95,3 +95,28 @@ async fn test_destination_create(pool: sqlx::PgPool) {
     assert!(error.is_some());
     assert_eq!(Some("Slug can not contain \"#\"".to_string()), error);
 }
+
+#[sqlx::test]
+async fn test_destination_create_api_prefix(pool: sqlx::PgPool) {
+    let mut app = helper::setup_test_app(pool).await;
+
+    let access_token = helper::login(&mut app).await;
+
+    // setup
+    let valid_api_prefix = "api-blabla";
+    let invalid_api_prefix = "api/blabla";
+
+    let url = "https://www.example.com/";
+
+    // create destination with valid `api-` prefix
+    let (status_code, destination, _) =
+        helper::maybe_create_destination(&mut app, &access_token, valid_api_prefix, url).await;
+    assert_eq!(StatusCode::CREATED, status_code);
+    assert!(destination.is_some());
+
+    // create destination with invalid `api/` prefix
+    let (status_code, destination, _) =
+        helper::maybe_create_destination(&mut app, &access_token, invalid_api_prefix, url).await;
+    assert_eq!(StatusCode::BAD_REQUEST, status_code);
+    assert!(destination.is_none());
+}
