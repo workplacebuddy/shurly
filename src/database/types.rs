@@ -4,7 +4,8 @@ use chrono::NaiveDateTime;
 use sqlx::migrate::Migrator;
 use uuid::Uuid;
 
-use crate::users::{Role, User};
+use crate::users::Role;
+use crate::users::User;
 
 use super::AuditEntry;
 

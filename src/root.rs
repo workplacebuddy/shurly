@@ -12,7 +12,7 @@ use axum_extra::headers::UserAgent;
 use axum_extra::TypedHeader;
 use percent_encoding::percent_decode_str;
 
-use crate::storage::Storage;
+use crate::database::Database;
 
 /// Template for 404 page
 const NOT_FOUND: &str = include_str!("pages/404.html");
@@ -26,11 +26,11 @@ const ERROR: &str = include_str!("pages/500.html");
 ///
 /// All wildcard requests end up in this function.
 ///
-/// A lookup in storage will be done looking for the right slug, based on the path
+/// A lookup in database will be done looking for the right slug, based on the path
 pub async fn root(
     ip_address: Option<InsecureClientIp>,
     user_agent: Option<TypedHeader<UserAgent>>,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     uri: Uri,
 ) -> Result<Redirect, (StatusCode, Html<String>)> {
     let slug = uri.path().trim_matches('/');
@@ -38,13 +38,13 @@ pub async fn root(
 
     tracing::debug!("Looking for slug: /{slug}");
 
-    let destination = storage
+    let destination = database
         .find_single_destination_by_slug(&slug)
         .await
         .map_err(internal_error)?;
 
     if let Some(destination) = destination {
-        storage
+        database
             .save_hit(
                 &destination,
                 ip_address.map(|i| i.0).as_ref(),

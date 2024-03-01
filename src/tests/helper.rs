@@ -13,8 +13,8 @@ use serde_json::Value;
 use tower::Service;
 use uuid::Uuid;
 
+use crate::database::DatabaseConfig;
 use crate::setup_app;
-use crate::storage::PostgresConfig;
 
 /// Test helper version of User struct
 #[derive(Debug)]
@@ -55,7 +55,7 @@ pub async fn setup_test_app(pool: sqlx::PgPool) -> Router {
     std::env::set_var("INITIAL_PASSWORD", "verysecret");
     std::env::set_var("JWT_SECRET", "verysecret");
 
-    setup_app(PostgresConfig::ExistingConnection(pool))
+    setup_app(DatabaseConfig::ExistingConnection(pool))
         .await
         .unwrap()
 }

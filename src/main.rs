@@ -3,6 +3,8 @@
 #![warn(clippy::pedantic)]
 // easier to use when using the functions as callback of foreign functions
 #![allow(clippy::needless_pass_by_value)]
+// types are used on their and are easier to read with a complete name
+#![allow(clippy::module_name_repetitions)]
 #![doc = include_str!("../README.md")]
 
 use std::net::SocketAddr;
@@ -10,25 +12,24 @@ use std::net::SocketAddr;
 use anyhow::Result;
 use axum::Extension;
 use axum::Router;
-use storage::Postgres;
-use storage::PostgresConfig;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::prelude::*;
 
 use crate::api::router;
 use crate::api::JwtKeys;
-use crate::storage::Storage;
+use crate::database::Database;
+use crate::database::DatabaseConfig;
 use crate::users::ensure_initial_user;
 use crate::utils::env_var_or_else;
 
 mod api;
+mod database;
 mod destinations;
 mod graceful_shutdown;
 mod notes;
 mod password;
 mod root;
-mod storage;
 #[cfg(test)]
 mod tests;
 mod users;
@@ -45,7 +46,7 @@ async fn main() -> Result<()> {
     setup_environment();
     setup_tracing();
 
-    let app = setup_app(PostgresConfig::DetectConfig).await?;
+    let app = setup_app(DatabaseConfig::DetectConfig).await?;
 
     let address = setup_address()?;
     tracing::info!("Listening on {}", address);
@@ -69,23 +70,23 @@ async fn main() -> Result<()> {
 /// Will return `Err` if any of its dependencies fail to load:
 /// - Database connection
 /// - Initial user setup
-pub async fn setup_app(config: PostgresConfig) -> Result<Router> {
-    let storage = Storage::Postgres(Postgres::from_config(config).await);
+pub async fn setup_app(config: DatabaseConfig) -> Result<Router> {
+    let database = Database::from_config(config).await;
 
-    ensure_initial_user(&storage).await?;
+    ensure_initial_user(&database).await?;
 
-    Ok(create_router(storage))
+    Ok(create_router(database))
 }
 
 /// Create the router for Shurly
-fn create_router(storage: Storage) -> Router {
+fn create_router(database: Database) -> Router {
     let jwt_keys = setup_jwt_keys();
 
     Router::new()
         .nest("/api", router())
         .fallback(root::root)
         .layer(TraceLayer::new_for_http())
-        .layer(Extension(storage))
+        .layer(Extension(database))
         .layer(Extension(jwt_keys))
 }
 

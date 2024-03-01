@@ -9,16 +9,16 @@ use axum::Extension;
 use axum::RequestPartsExt;
 use axum_client_ip::InsecureClientIp;
 
-use crate::storage::AuditEntry;
-use crate::storage::Storage;
+use crate::database::AuditEntry;
+use crate::database::Database;
 
 use super::CurrentUser;
 use super::Error;
 
 /// Audit trail service
 pub struct AuditTrail {
-    /// Storage in where the trail is saved
-    storage: Storage,
+    /// Database in where the trail is saved
+    database: Database,
 
     /// The current user for the audit trail
     current_user: CurrentUser,
@@ -31,7 +31,7 @@ impl AuditTrail {
     /// Register an entry on the audit trail
     pub async fn register(&self, entry: AuditEntry<'_>) {
         let result = self
-            .storage
+            .database
             .register_audit_trail(&self.current_user, &entry, self.ip_address.as_ref())
             .await;
 
@@ -49,10 +49,10 @@ where
     type Rejection = Error;
 
     async fn from_request_parts(parts: &mut Parts, state: &B) -> Result<Self, Self::Rejection> {
-        let Extension(storage) = parts
-            .extract::<Extension<Storage>>()
+        let Extension(database) = parts
+            .extract::<Extension<Database>>()
             .await
-            .map_err(|_| Error::internal_server_error("Could not get a storage pool"))?;
+            .map_err(|_| Error::internal_server_error("Could not get a database pool"))?;
 
         let current_user = CurrentUser::from_request_parts(parts, state).await?;
 
@@ -62,7 +62,7 @@ where
             .map(|i| i.0);
 
         Ok(AuditTrail {
-            storage,
+            database,
             current_user,
             ip_address,
         })

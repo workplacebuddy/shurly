@@ -8,12 +8,12 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::database::AuditEntry;
+use crate::database::CreateNoteValues;
+use crate::database::Database;
+use crate::database::UpdateNoteValues;
 use crate::destinations::Destination;
 use crate::notes::Note;
-use crate::storage::AuditEntry;
-use crate::storage::CreateNoteValues;
-use crate::storage::Storage;
-use crate::storage::UpdateNoteValues;
 use crate::users::Role;
 
 use super::AuditTrail;
@@ -77,15 +77,15 @@ impl NoteResponse {
 /// { "data": [ { "id": "<uuid>", "content": "Used on the 26-07 ad campaign" ... } ] }
 /// ```
 pub async fn list(
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
 ) -> Result<Success<Vec<NoteResponse>>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destination = fetch_destination(&storage, &destination_id).await?;
+    let destination = fetch_destination(&database, &destination_id).await?;
 
-    let notes = storage
+    let notes = database
         .find_all_notes_by_destination(&destination)
         .await
         .map_err(Error::internal_server_error)?;
@@ -107,15 +107,15 @@ pub async fn list(
 /// { "data": { "id": "<uuid>", "content": "Used on the 26-07 ad campaign" ... } }
 /// ```
 pub async fn single(
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters((destination_id, note_id)): PathParameters<(Uuid, Uuid)>,
 ) -> Result<Success<NoteResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destination = fetch_destination(&storage, &destination_id).await?;
+    let destination = fetch_destination(&database, &destination_id).await?;
 
-    fetch_note(&storage, &destination.id, &note_id)
+    fetch_note(&database, &destination.id, &note_id)
         .await
         .map(|note| Success::ok(NoteResponse::from_note(note)))
 }
@@ -146,21 +146,21 @@ pub struct CreateNoteForm {
 /// ```
 pub async fn create(
     audit_trail: AuditTrail,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
     Form(form): Form<CreateNoteForm>,
 ) -> Result<Success<NoteResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destination = fetch_destination(&storage, &destination_id).await?;
+    let destination = fetch_destination(&database, &destination_id).await?;
 
     let values = CreateNoteValues {
         user: &current_user,
         content: &form.content,
     };
 
-    let note = storage
+    let note = database
         .create_note(&destination, &values)
         .await
         .map_err(Error::internal_server_error)?;
@@ -199,21 +199,21 @@ pub struct UpdateNoteForm {
 /// ```
 pub async fn update(
     audit_trail: AuditTrail,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters((destination_id, note_id)): PathParameters<(Uuid, Uuid)>,
     Form(form): Form<UpdateNoteForm>,
 ) -> Result<Success<NoteResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destination = fetch_destination(&storage, &destination_id).await?;
-    let note = fetch_note(&storage, &destination.id, &note_id).await?;
+    let destination = fetch_destination(&database, &destination_id).await?;
+    let note = fetch_note(&database, &destination.id, &note_id).await?;
 
     let values = UpdateNoteValues {
         content: form.content.as_ref(),
     };
 
-    let note = storage
+    let note = database
         .update_note(&note, &values)
         .await
         .map_err(Error::internal_server_error)?;
@@ -237,16 +237,16 @@ pub async fn update(
 /// ```
 pub async fn delete(
     audit_trail: AuditTrail,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters((destination_id, note_id)): PathParameters<(Uuid, Uuid)>,
 ) -> Result<Success<&'static str>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destination = fetch_destination(&storage, &destination_id).await?;
-    let note = fetch_note(&storage, &destination.id, &note_id).await?;
+    let destination = fetch_destination(&database, &destination_id).await?;
+    let note = fetch_note(&database, &destination.id, &note_id).await?;
 
-    storage
+    database
         .delete_note(&note)
         .await
         .map_err(Error::internal_server_error)?;
@@ -258,22 +258,25 @@ pub async fn delete(
     Ok(Success::<&'static str>::no_content())
 }
 
-/// Fetch destination from storage
-async fn fetch_destination(storage: &Storage, destination_id: &Uuid) -> Result<Destination, Error> {
-    storage
+/// Fetch destination from database
+async fn fetch_destination(
+    database: &Database,
+    destination_id: &Uuid,
+) -> Result<Destination, Error> {
+    database
         .find_single_destination_by_id(destination_id)
         .await
         .map_err(Error::internal_server_error)?
         .map_or_else(|| Err(Error::not_found("Destination not found")), Ok)
 }
 
-/// Fetch note from storage
+/// Fetch note from database
 async fn fetch_note(
-    storage: &Storage,
+    database: &Database,
     destination_id: &Uuid,
     note_id: &Uuid,
 ) -> Result<Note, Error> {
-    storage
+    database
         .find_single_note_by_id(destination_id, note_id)
         .await
         .map_err(Error::internal_server_error)?

@@ -20,7 +20,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::api::Error;
-use crate::storage::Storage;
+use crate::database::Database;
 use crate::users::User;
 
 /// The keys used for encoding/decoding JWT tokens
@@ -146,10 +146,10 @@ where
             .await
             .map_err(|_| Error::internal_server_error("Could not get JWT keys"))?;
 
-        let Extension(storage) = parts
-            .extract::<Extension<Storage>>()
+        let Extension(database) = parts
+            .extract::<Extension<Database>>()
             .await
-            .map_err(|_| Error::internal_server_error("Could not get a storage pool"))?;
+            .map_err(|_| Error::internal_server_error("Could not get a database pool"))?;
 
         let validation = Validation::default();
 
@@ -161,7 +161,7 @@ where
 
         let id = claims.sub;
 
-        let user = storage
+        let user = database
             .find_single_user_by_id(&id)
             .await
             .map_err(|_| Error::forbidden("Could not find user"))?;

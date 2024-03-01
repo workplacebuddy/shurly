@@ -6,10 +6,10 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::database::CreateUserValues;
+use crate::database::Database;
 use crate::password::generate;
 use crate::password::hash;
-use crate::storage::CreateUserValues;
-use crate::storage::Storage;
 use crate::utils::env_var_or_else;
 
 /// User roles
@@ -62,8 +62,8 @@ impl User {
 /// This user will be created with the credentials from the `INITIAL_USERNAME` and
 /// `INITIAL_PASSWORD` environment variables. If those are empty, randomly generated credentials
 /// will be user; these will be shown in the logs
-pub async fn ensure_initial_user(storage: &Storage) -> Result<()> {
-    let user = storage.find_any_single_user().await?;
+pub async fn ensure_initial_user(database: &Database) -> Result<()> {
+    let user = database.find_any_single_user().await?;
 
     if user.is_none() {
         let username = env_var_or_else("INITIAL_USERNAME", || {
@@ -91,7 +91,7 @@ pub async fn ensure_initial_user(storage: &Storage) -> Result<()> {
             hashed_password: &hashed_password,
         };
 
-        storage.create_user(&values).await?;
+        database.create_user(&values).await?;
     }
 
     Ok(())

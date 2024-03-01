@@ -8,11 +8,11 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::database::AuditEntry;
+use crate::database::CreateDestinationValues;
+use crate::database::Database;
+use crate::database::UpdateDestinationValues;
 use crate::destinations::Destination;
-use crate::storage::AuditEntry;
-use crate::storage::CreateDestinationValues;
-use crate::storage::Storage;
-use crate::storage::UpdateDestinationValues;
 use crate::users::Role;
 
 use super::parse_slug;
@@ -89,12 +89,12 @@ impl DestinationResponse {
 /// { "data": [ { "id": "<uuid>", "slug": "some-easy-name" ... } ] }
 /// ```
 pub async fn list(
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
 ) -> Result<Success<Vec<DestinationResponse>>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destinations = storage
+    let destinations = database
         .find_all_destinations()
         .await
         .map_err(Error::internal_server_error)?;
@@ -118,13 +118,13 @@ pub async fn list(
 /// { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
 /// ```
 pub async fn single(
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
 ) -> Result<Success<DestinationResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    fetch_destination(&storage, &destination_id)
+    fetch_destination(&database, &destination_id)
         .await
         .map(|destination| Success::ok(DestinationResponse::from_destination(destination)))
 }
@@ -165,7 +165,7 @@ pub struct CreateDestinationForm {
 /// ```
 pub async fn create(
     audit_trail: AuditTrail,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     Form(form): Form<CreateDestinationForm>,
 ) -> Result<Success<DestinationResponse>, Error> {
@@ -174,7 +174,7 @@ pub async fn create(
     let slug = parse_slug(&form.slug)?;
     let url = parse_url(&form.url)?;
 
-    let destination = storage
+    let destination = database
         .find_single_destination_by_slug(&slug)
         .await
         .map_err(Error::internal_server_error)?;
@@ -193,7 +193,7 @@ pub async fn create(
             is_permanent: &form.is_permanent.unwrap_or(false),
         };
 
-        let destination = storage
+        let destination = database
             .create_destination(&values)
             .await
             .map_err(Error::internal_server_error)?;
@@ -243,14 +243,14 @@ pub struct UpdateDestinationForm {
 /// ```
 pub async fn update(
     audit_trail: AuditTrail,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
     Form(form): Form<UpdateDestinationForm>,
 ) -> Result<Success<DestinationResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destination = fetch_destination(&storage, &destination_id).await?;
+    let destination = fetch_destination(&database, &destination_id).await?;
 
     if destination.is_permanent {
         return Err(Error::bad_request("Permanent URLs can not be updated"));
@@ -267,7 +267,7 @@ pub async fn update(
         is_permanent: form.is_permanent.as_ref(),
     };
 
-    let updated_destination = storage
+    let updated_destination = database
         .update_destination(&destination, &values)
         .await
         .map_err(Error::internal_server_error)?;
@@ -293,19 +293,19 @@ pub async fn update(
 /// ```
 pub async fn delete(
     audit_trail: AuditTrail,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
 ) -> Result<Success<&'static str>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    let destination = fetch_destination(&storage, &destination_id).await?;
+    let destination = fetch_destination(&database, &destination_id).await?;
 
     if destination.is_permanent {
         return Err(Error::bad_request("Permanent URLs can not be deleted"));
     }
 
-    storage
+    database
         .delete_destination(&destination)
         .await
         .map_err(Error::internal_server_error)?;
@@ -317,9 +317,12 @@ pub async fn delete(
     Ok(Success::<&'static str>::no_content())
 }
 
-/// Fetch destination from storage
-async fn fetch_destination(storage: &Storage, destination_id: &Uuid) -> Result<Destination, Error> {
-    storage
+/// Fetch destination from database
+async fn fetch_destination(
+    database: &Database,
+    destination_id: &Uuid,
+) -> Result<Destination, Error> {
+    database
         .find_single_destination_by_id(destination_id)
         .await
         .map_err(Error::internal_server_error)?

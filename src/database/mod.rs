@@ -1,4 +1,4 @@
-//!Postgres storage
+//! All things related to the storage of destinations and notes
 
 use std::net::IpAddr;
 use std::time::Duration;
@@ -6,27 +6,35 @@ use std::time::Duration;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
+use thiserror::Error;
 use uuid::Uuid;
+
+pub use form_types::*;
+pub use Config as DatabaseConfig;
 
 use crate::destinations::Destination;
 use crate::notes::Note;
 use crate::users::User;
+use types::AuditEntryType;
+use types::SqlxUser;
+use types::UserRoleType;
+use types::MIGRATOR;
 
-use super::database::AuditEntryType;
-use super::database::SqlxUser;
-use super::database::UserRoleType;
-use super::database::MIGRATOR;
-use super::AuditEntry;
-use super::ChangePasswordValues;
-use super::CreateDestinationValues;
-use super::CreateNoteValues;
-use super::CreateUserValues;
-use super::Error;
-use super::Result;
-use super::UpdateDestinationValues;
-use super::UpdateNoteValues;
+mod form_types;
+mod types;
 
-/// Postgres configuration
+/// Storage errors
+#[derive(Debug, Error)]
+pub enum Error {
+    /// A connection error with the storage
+    #[error("Connection error: {0}")]
+    Connection(String),
+}
+
+/// Result type for all storage interactions
+pub type Result<T> = core::result::Result<T, Error>;
+
+/// Database configuration
 pub enum Config {
     /// Detect configuration from environment
     DetectConfig,
@@ -37,12 +45,12 @@ pub enum Config {
 
 /// Postgres storage
 #[derive(Clone)]
-pub struct Postgres {
+pub struct Database {
     /// Pool of connections
     connection_pool: PgPool,
 }
 
-impl Postgres {
+impl Database {
     /// Create a new Postgres storage
     pub async fn from_config(config: Config) -> Self {
         match config {
@@ -83,7 +91,7 @@ impl Postgres {
     }
 }
 
-impl Postgres {
+impl Database {
     /// Find any single user
     ///
     /// Respects the soft-delete

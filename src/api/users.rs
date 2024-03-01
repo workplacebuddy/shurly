@@ -8,13 +8,13 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::database::AuditEntry;
+use crate::database::ChangePasswordValues;
+use crate::database::CreateUserValues;
+use crate::database::Database;
 use crate::password::generate;
 use crate::password::hash;
 use crate::password::verify;
-use crate::storage::AuditEntry;
-use crate::storage::ChangePasswordValues;
-use crate::storage::CreateUserValues;
-use crate::storage::Storage;
 use crate::users::Role;
 use crate::users::User;
 
@@ -100,10 +100,10 @@ pub struct LoginForm {
 /// ```
 pub async fn token(
     Extension(jwt_keys): Extension<JwtKeys>,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     Form(form): Form<LoginForm>,
 ) -> Result<Success<Token>, Error> {
-    let user = storage
+    let user = database
         .find_single_user_by_username(&form.username)
         .await
         .map_err(Error::internal_server_error)?;
@@ -135,12 +135,12 @@ pub async fn token(
 /// { "data": [ { "id": "<uuid>", "username": "some-username" ... } ] }
 /// ```
 pub async fn list(
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
 ) -> Result<Success<Vec<UserResponse>>, Error> {
     current_user.role.is_allowed(Role::Admin)?;
 
-    let users = storage
+    let users = database
         .find_all_users()
         .await
         .map_err(Error::internal_server_error)?;
@@ -171,13 +171,13 @@ pub async fn list(
 /// { "data": { "id": "<uuid>", "username": "some-username" ... } }
 /// ```
 pub async fn single(
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters(params): PathParameters<HashMap<String, Uuid>>,
 ) -> Result<Success<UserResponse>, Error> {
     let user = if let Some(user_id) = params.get("user") {
         current_user.role.is_allowed(Role::Admin)?;
-        fetch_user(&storage, user_id).await?
+        fetch_user(&database, user_id).await?
     } else {
         current_user.role.is_allowed(Role::Manager)?;
         current_user.deref().clone()
@@ -217,13 +217,13 @@ pub struct CreateUserForm {
 /// ```
 pub async fn create(
     audit_trail: AuditTrail,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     Form(form): Form<CreateUserForm>,
 ) -> Result<Success<UserResponse>, Error> {
     current_user.role.is_allowed(Role::Admin)?;
 
-    let user = storage
+    let user = database
         .find_single_user_by_username(&form.username)
         .await
         .map_err(Error::internal_server_error)?;
@@ -250,7 +250,7 @@ pub async fn create(
             hashed_password: &hashed_password,
         };
 
-        let user = storage
+        let user = database
             .create_user(&values)
             .await
             .map_err(Error::internal_server_error)?;
@@ -304,14 +304,14 @@ pub struct ChangePasswordForm {
 pub async fn change_password(
     audit_trail: AuditTrail,
     Extension(jwt_keys): Extension<JwtKeys>,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters(params): PathParameters<HashMap<String, Uuid>>,
     Form(form): Form<ChangePasswordForm>,
 ) -> Result<Success<Token>, Error> {
     let user = if let Some(user_id) = params.get("user") {
         current_user.role.is_allowed(Role::Admin)?;
-        fetch_user(&storage, user_id).await?
+        fetch_user(&database, user_id).await?
     } else {
         current_user.role.is_allowed(Role::Manager)?;
         current_user.deref().clone()
@@ -329,7 +329,7 @@ pub async fn change_password(
         hashed_password: &hashed_password,
     };
 
-    let updated_user = storage
+    let updated_user = database
         .change_password(&user, &values)
         .await
         .map_err(Error::internal_server_error)?;
@@ -353,15 +353,15 @@ pub async fn change_password(
 /// ```
 pub async fn delete(
     audit_trail: AuditTrail,
-    Extension(storage): Extension<Storage>,
+    Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters(user_id): PathParameters<Uuid>,
 ) -> Result<Success<&'static str>, Error> {
     current_user.role.is_allowed(Role::Admin)?;
 
-    let user = fetch_user(&storage, &user_id).await?;
+    let user = fetch_user(&database, &user_id).await?;
 
-    storage
+    database
         .delete_user(&user)
         .await
         .map_err(Error::internal_server_error)?;
@@ -371,9 +371,9 @@ pub async fn delete(
     Ok(Success::<&'static str>::no_content())
 }
 
-/// Fetch a user from storage
-async fn fetch_user(storage: &Storage, user_id: &Uuid) -> Result<User, Error> {
-    storage
+/// Fetch a user from database
+async fn fetch_user(database: &Database, user_id: &Uuid) -> Result<User, Error> {
+    database
         .find_single_user_by_id(user_id)
         .await
         .map_err(Error::internal_server_error)?
