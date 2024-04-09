@@ -4,6 +4,19 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.3.0
+
+### Features
+
+-   Remove `memory` feature, Postgres is now always used
+-   Disallow `api/` prefix for slugs
+-   Upgrade all dependencies to their latest versions
+
+### Fixes
+
+-   Upgrade to latest h2 (0.4.4) — Fixes GHSA-q6cp-qfwq-4gcv
+-   Upgrade to latest `whoami` (1.5.1) Fixes GHSA-w5w5-8vfh-xcjq
+
 ## Version 0.2.4
 
 ### Fixes
