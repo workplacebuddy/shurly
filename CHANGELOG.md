@@ -4,6 +4,12 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.3.1
+
+### Fixes
+
+-   Upgrade to latest `rustls` (0.21.11) — Fixes CVE-2024-32650 and GHSA-6g7w-8wpp-frhj
+
 ## Version 0.3.0
 
 ### Features
