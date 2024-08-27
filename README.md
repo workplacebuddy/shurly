@@ -261,8 +261,8 @@ Using the `SQLx` CLI adds a couple of nicities to work with migrations.
 
 #### Rust version
 
-Shurly is tested on Rust version 1.65, stable and beta. The Docker images are
-created with the `rust:1.65-slim` base image.
+Shurly is tested on Rust version 1.80, stable and beta. The Docker images are
+created with the `rust:1.80-slim` base image.
 
 # Things to to (maybe)
 
