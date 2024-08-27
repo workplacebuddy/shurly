@@ -12,7 +12,7 @@ rust-version = "1.70"
 [dependencies]
 anyhow = "1.0.86"
 argon2 = "0.5.3"
-axum = "0.7.4"
+axum = "0.7.5"
 axum-client-ip = "0.5.0"
 axum-extra = { version = "0.9.2", features = ["typed-header"] }
 chrono = { version = "0.4.34", features = ["serde"] }
