@@ -3,7 +3,7 @@
 ##
 
 # Base builder image
-FROM rust:1.70-slim as builder
+FROM rust:1.80-slim AS builder
 
 # Very nice
 WORKDIR /usr/src/shurly
@@ -12,7 +12,7 @@ WORKDIR /usr/src/shurly
 COPY . .
 
 # We setup a SQLx cache file of our schema to support building without a database connection
-ENV SQLX_OFFLINE true
+ENV SQLX_OFFLINE=true
 
 # We be building!
 RUN --mount=type=cache,target=/usr/src/shurly/target \
@@ -23,10 +23,10 @@ RUN --mount=type=cache,target=/usr/src/shurly/target \
     objcopy --compress-debug-sections target/release/shurly ./shurly
 
 # Lean, mean, image machine
-FROM gcr.io/distroless/cc as runtime
+FROM gcr.io/distroless/cc AS runtime
 
 # It's us
-LABEL org.opencontainers.image.source https://github.com/workplacebuddy/shurly
+LABEL org.opencontainers.image.source=https://github.com/workplacebuddy/shurly
 
 # Just the Shurly binary
 COPY --from=builder /usr/src/shurly/shurly /
