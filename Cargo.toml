@@ -47,5 +47,5 @@ features = [
 ]
 
 [dev-dependencies]
-http-body-util = "0.1.0"
+http-body-util = "0.1.2"
 mime = "0.3.17"
