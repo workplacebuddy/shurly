@@ -1560,7 +1560,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
- "thiserror",
  "tokio",
  "tower 0.5.0",
  "tower-http",

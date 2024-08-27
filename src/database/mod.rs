@@ -1,12 +1,12 @@
 //! All things related to the storage of destinations and notes
 
+use core::fmt;
 use std::net::IpAddr;
 use std::time::Duration;
 
 use sqlx::postgres::PgPoolOptions;
 use sqlx::types::ipnetwork::IpNetwork;
 use sqlx::PgPool;
-use thiserror::Error;
 use uuid::Uuid;
 
 pub use form_types::*;
@@ -24,11 +24,20 @@ mod form_types;
 mod types;
 
 /// Storage errors
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum Error {
     /// A connection error with the storage
-    #[error("Connection error: {0}")]
     Connection(String),
+}
+
+impl std::error::Error for Error {}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::Connection(error) => write!(f, "Connection error: {error}"),
+        }
+    }
 }
 
 /// Result type for all storage interactions
