@@ -4,6 +4,14 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.3.2
+
+### Fixes
+
+-   Upgrade to latest `sqlx` (0.8.1) — Fixes GHSA-xmrp-424f-vfpx
+-   Upgrade all dependencies to their latest versions
+-   Update MSRV to 1.80
+
 ## Version 0.3.1
 
 ### Fixes
