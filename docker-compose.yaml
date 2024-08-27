@@ -9,7 +9,7 @@ volumes:
 
 services:
     shurly:
-        restart: always
+        restart: "no"
         build:
             context: .
             dockerfile: ./Dockerfile
@@ -23,7 +23,7 @@ services:
             PORT: ${PORT}
     the-data:
         image: postgres:14-bullseye
-        restart: always
+        restart: "no"
         networks:
             - shurly-network
         volumes:
