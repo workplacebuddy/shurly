@@ -41,9 +41,11 @@ pub struct User {
     pub role: Role,
 
     /// Creation date
+    #[allow(dead_code)] // used by sqlx
     pub created_at: NaiveDateTime,
 
     /// Last updated at
+    #[allow(dead_code)] // used by sqlx
     pub updated_at: NaiveDateTime,
 
     /// Soft-deleted at

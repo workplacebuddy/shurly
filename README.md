@@ -30,7 +30,7 @@ curl -v http://localhost:7000/the-one
 
 ## Getting started
 
-### Setup PostgreSQL database
+### Setup `PostgreSQL` database
 
 > An extra requirement is needed to actually run Shurly with a database, that is
 > an actual database. This can be setup separately, or the [Docker Compose] setup
@@ -173,7 +173,7 @@ building the images; pre-built images are available:
 
 -   [`ghcr.io/workplacebuddy/shurly:master`]
 -   More information and tags available here:
-    https://github.com/workplacebuddy/shurly/pkgs/container/shurly
+    <https://github.com/workplacebuddy/shurly/pkgs/container/shurly>
 
 ## Configuration
 
@@ -201,7 +201,7 @@ JWT_SECRET=
 
 ### Database connection
 
-Connection string for PostgreSQL server.
+Connection string for `PostgreSQL` server.
 When running the Docker Compose setup this will be provided.
 
 ```sh
@@ -230,17 +230,17 @@ environment variables. When using these variables, they will not be output to
 the log.
 
 -   `INITIAL_USERNAME`: Username of the first user for the first run (optional,
-    default: some UUIDv4)
+    default: some `UUIDv4`)
 -   `INITIAL_PASSWORD`: Password of the first user for the first run (optional,
     default: something random)
 
 The environment variables can be set in a `.env` file, see `.env.default` for
 an example.
 
-## PostgreSQL database migrations
+## `PostgreSQL` database migrations
 
-Shurly uses `SQLx` for all PostgreSQL database interactions, migrations are run
-automatically on start up.
+Shurly uses `SQLx` for all `PostgreSQL` database interactions, migrations are
+run automatically on start up.
 
 The migration files can be found in `./migrations` and are sorted on filename.
 

@@ -21,6 +21,7 @@ use crate::setup_app;
 pub struct User {
     pub id: Uuid,
     pub username: String,
+    #[allow(dead_code)] // used by sqlx
     pub role: String,
     pub password: Option<String>,
 }
@@ -30,6 +31,7 @@ pub struct User {
 pub struct Destination {
     pub id: Uuid,
     pub slug: String,
+    #[allow(dead_code)] // used by sqlx
     pub url: String,
 }
 

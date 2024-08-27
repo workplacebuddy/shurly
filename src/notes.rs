@@ -10,9 +10,11 @@ pub struct Note {
     pub id: Uuid,
 
     /// The ID of the user that created it
+    #[allow(dead_code)] // used by sqlx
     pub user_id: Uuid,
 
     /// Destination this note belongs to
+    #[allow(dead_code)] // used by sqlx
     pub destination_id: Uuid,
 
     /// The actual content of the note
@@ -25,5 +27,6 @@ pub struct Note {
     pub updated_at: NaiveDateTime,
 
     /// Soft-deleted at
+    #[allow(dead_code)] // used by sqlx
     pub deleted_at: Option<NaiveDateTime>,
 }

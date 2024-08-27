@@ -10,6 +10,7 @@ pub struct Destination {
     pub id: Uuid,
 
     /// The ID of the user that created it
+    #[allow(dead_code)] // used by sqlx
     pub user_id: Uuid,
 
     /// External identifier for the root
