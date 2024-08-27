@@ -28,7 +28,7 @@ tower-http = { version = "0.5.2", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 url = "2.5.2"
-uuid = { version = "1.7.0", features = ["v4", "serde"] }
+uuid = { version = "1.10.0", features = ["v4", "serde"] }
 percent-encoding = "2.3.1"
 unicode-normalization = "0.1.23"
 
