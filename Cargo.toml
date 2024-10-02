@@ -14,7 +14,7 @@ anyhow = "1.0.89"
 argon2 = "0.5.3"
 axum = "0.7.7"
 axum-client-ip = "0.6.0"
-axum-extra = { version = "0.9.3", features = ["typed-header"] }
+axum-extra = { version = "0.9.4", features = ["typed-header"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 dotenvy = "0.15.7"
 jsonwebtoken = "9.3.0"
