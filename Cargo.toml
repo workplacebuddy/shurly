@@ -10,7 +10,7 @@ readme = "README.md"
 rust-version = "1.80"
 
 [dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.89"
 argon2 = "0.5.3"
 axum = "0.7.5"
 axum-client-ip = "0.6.0"
