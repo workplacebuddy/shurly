@@ -9,27 +9,73 @@ repository = "https://github.com/workplacebuddy/shurly"
 readme = "README.md"
 rust-version = "1.80"
 
-[dependencies]
-anyhow = "1.0.89"
-argon2 = "0.5.3"
-axum = "0.7.7"
-axum-client-ip = "0.6.0"
-axum-extra = { version = "0.9.4", features = ["typed-header"] }
-chrono = { version = "0.4.38", features = ["serde"] }
-dotenvy = "0.15.7"
-jsonwebtoken = "9.3.0"
-rand_core = { version = "0.6.4", features = ["std"] }
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = "1.0.128"
-tokio = { version = "1.40.0", features = ["full"] }
-tower = { version = "0.5.1", features = ["util"] }
-tower-http = { version = "0.6.1", features = ["trace"] }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
-url = "2.5.2"
-uuid = { version = "1.10.0", features = ["v4", "serde"] }
-percent-encoding = "2.3.1"
-unicode-normalization = "0.1.24"
+[dependencies.anyhow]
+version = "1.0.89"
+default-features = false
+features = [
+    "std",
+]
+
+[dependencies.argon2]
+version = "0.5.3"
+default-features = false
+features = [
+    "std",
+]
+
+[dependencies.axum]
+version = "0.7.7"
+default-features = false
+features = [
+    "form",
+    "json",
+]
+
+[dependencies.axum-client-ip]
+version = "0.6.0"
+default-features = false
+
+[dependencies.axum-extra]
+version = "0.9.4"
+default-features = false
+features = [
+    "tracing",
+    "typed-header",
+]
+
+[dependencies.chrono]
+version = "0.4.38"
+default-features = false
+features = [
+    "serde",
+]
+
+[dependencies.dotenvy]
+version = "0.15.7"
+default-features = false
+
+[dependencies.jsonwebtoken]
+version = "9.3.0"
+default-features = false
+
+[dependencies.rand_core]
+version = "0.6.4"
+default-features = false
+features = [
+    "std",
+]
+
+[dependencies.serde]
+version = "1.0.210"
+default-features = false
+features = [
+    "derive",
+    "std",
+]
+
+[dependencies.serde_json]
+version = "1.0.128"
+default-features = false
 
 [dependencies.sqlx]
 version = "0.8.2"
@@ -45,6 +91,65 @@ features = [
     "uuid",
 ]
 
-[dev-dependencies]
-http-body-util = "0.1.2"
-mime = "0.3.17"
+[dependencies.tokio]
+version = "1.40.0"
+default-features = false
+features = [
+    "rt-multi-thread",
+    "signal",
+]
+
+[dependencies.tower]
+version = "0.5.1"
+default-features = false
+features = [
+    "util",
+]
+
+[dependencies.tower-http]
+version = "0.6.1"
+default-features = false
+features = [
+    "trace",
+]
+
+[dependencies.tracing]
+version = "0.1.40"
+default-features = false
+
+[dependencies.tracing-subscriber]
+version = "0.3.18"
+default-features = false
+features = [
+    "ansi",
+    "env-filter",
+    "fmt",
+]
+
+[dependencies.url]
+version = "2.5.2"
+default-features = false
+
+[dependencies.uuid]
+version = "1.10.0"
+default-features = false
+features = [
+    "v4",
+    "serde",
+]
+
+[dependencies.percent-encoding]
+version = "2.3.1"
+default-features = false
+
+[dependencies.unicode-normalization]
+version = "0.1.24"
+default-features = false
+
+[dev-dependencies.http-body-util]
+version = "0.1.2"
+default-features = false
+
+[dev-dependencies.mime]
+version = "0.3.17"
+default-features = false
