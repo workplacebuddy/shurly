@@ -4,6 +4,16 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.3.3
+
+### Fixes
+
+-   Upgrade to latest `rsa` (0.9.7) — Fixes GHSA-4grx-2x9w-596c
+-   Upgrade to latest `rustls` (0.23.19) — Fixes GHSA-qg5g-gv98-5ffh
+-   Upgrade to latest `idna` (1.0.3) — Fixes CVE-2024-12224 & GHSA-h97m-ww89-6jmq
+-   Upgrade all dependencies to their latest versions
+-   Update MSRV to 1.82
+
 ## Version 0.3.2
 
 ### Fixes
