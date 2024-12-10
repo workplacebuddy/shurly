@@ -107,7 +107,7 @@ features = [
 ]
 
 [dependencies.tower-http]
-version = "0.6.1"
+version = "0.6.2"
 default-features = false
 features = [
     "trace",
