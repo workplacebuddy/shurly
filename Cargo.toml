@@ -32,7 +32,7 @@ features = [
 ]
 
 [dependencies.axum-client-ip]
-version = "0.6.0"
+version = "0.6.1"
 default-features = false
 
 [dependencies.axum-extra]
