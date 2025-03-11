@@ -44,7 +44,7 @@ features = [
 ]
 
 [dependencies.chrono]
-version = "0.4.39"
+version = "0.4.40"
 default-features = false
 features = [
     "serde",
