@@ -10,7 +10,7 @@ readme = "README.md"
 rust-version = "1.82"
 
 [dependencies.anyhow]
-version = "1.0.94"
+version = "1.0.97"
 default-features = false
 features = [
     "std",
