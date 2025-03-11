@@ -4,6 +4,13 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.3.4
+
+### Fixes
+
+-   Upgrade to latest `ring` (0.17.13) — Fixes GHSA-4p46-pwfr-66x6
+-   Upgrade all dependencies to their latest versions
+
 ## Version 0.3.3
 
 ### Fixes
