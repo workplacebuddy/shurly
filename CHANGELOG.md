@@ -4,6 +4,13 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.3.5
+
+### Fixes
+
+-   Upgrade to latest `tokio` (0.44.2) — Fixes GHSA-rr8g-9fpq-6wmg
+-   Upgrade all dependencies to their latest versions
+
 ## Version 0.3.4
 
 ### Fixes
