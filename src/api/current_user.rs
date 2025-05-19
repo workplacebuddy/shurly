@@ -5,13 +5,13 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
-use axum::extract::FromRequestParts;
-use axum::http::request::Parts;
 use axum::Extension;
 use axum::RequestPartsExt;
-use axum_extra::headers::authorization::Bearer;
-use axum_extra::headers::Authorization;
+use axum::extract::FromRequestParts;
+use axum::http::request::Parts;
 use axum_extra::TypedHeader;
+use axum_extra::headers::Authorization;
+use axum_extra::headers::authorization::Bearer;
 use jsonwebtoken::DecodingKey;
 use jsonwebtoken::EncodingKey;
 use serde::Deserialize;
@@ -107,8 +107,8 @@ impl Deref for CurrentUser {
 
 /// Generate a token for the outside world for a given user
 pub fn generate_token(jwt_keys: &JwtKeys, user: &User) -> Result<Token, Error> {
-    use jsonwebtoken::encode;
     use jsonwebtoken::Header;
+    use jsonwebtoken::encode;
 
     let expires_in = 3600; // valid for an hour
     let claims = Claims {
@@ -130,8 +130,8 @@ where
     type Rejection = Error;
 
     async fn from_request_parts(parts: &mut Parts, state: &B) -> Result<Self, Self::Rejection> {
-        use jsonwebtoken::decode;
         use jsonwebtoken::Validation;
+        use jsonwebtoken::decode;
 
         // Extract the token from the authorization header
         let TypedHeader(Authorization(bearer)) =

@@ -2,10 +2,10 @@
 
 use std::net::IpAddr;
 
-use axum::extract::FromRequestParts;
-use axum::http::request::Parts;
 use axum::Extension;
 use axum::RequestPartsExt;
+use axum::extract::FromRequestParts;
+use axum::http::request::Parts;
 
 use crate::client_ip::ClientIp;
 use crate::database::AuditEntry;

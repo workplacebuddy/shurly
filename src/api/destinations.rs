@@ -15,14 +15,14 @@ use crate::database::UpdateDestinationValues;
 use crate::destinations::Destination;
 use crate::users::Role;
 
-use super::parse_slug;
-use super::parse_url;
 use super::AuditTrail;
 use super::CurrentUser;
 use super::Error;
 use super::Form;
 use super::PathParameters;
 use super::Success;
+use super::parse_slug;
+use super::parse_url;
 
 /// Destination response going to the user
 ///

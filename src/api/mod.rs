@@ -1,19 +1,19 @@
 //! All API endpoint setup
 
+use axum::Router;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::patch;
 use axum::routing::post;
 use axum::routing::put;
-use axum::Router;
 
 pub use audit_trail::AuditTrail;
 pub use current_user::CurrentUser;
 pub use current_user::JwtKeys;
-pub use request::parse_slug;
-pub use request::parse_url;
 pub use request::Form;
 pub use request::PathParameters;
+pub use request::parse_slug;
+pub use request::parse_url;
 pub use response::Error;
 pub use response::Success;
 

@@ -1,11 +1,11 @@
 //! Password utilities
 
-use argon2::password_hash::rand_core::OsRng;
+use argon2::Argon2;
 use argon2::password_hash::PasswordHash;
 use argon2::password_hash::PasswordHasher;
 use argon2::password_hash::PasswordVerifier;
 use argon2::password_hash::SaltString;
-use argon2::Argon2;
+use argon2::password_hash::rand_core::OsRng;
 
 /// Generate a new password
 pub fn generate() -> String {

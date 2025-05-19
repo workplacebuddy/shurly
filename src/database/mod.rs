@@ -4,21 +4,21 @@ use core::fmt;
 use std::net::IpAddr;
 use std::time::Duration;
 
+use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::types::ipnetwork::IpNetwork;
-use sqlx::PgPool;
 use uuid::Uuid;
 
-pub use form_types::*;
 pub use Config as DatabaseConfig;
+pub use form_types::*;
 
 use crate::destinations::Destination;
 use crate::notes::Note;
 use crate::users::User;
 use types::AuditEntryType;
+use types::MIGRATOR;
 use types::SqlxUser;
 use types::UserRoleType;
-use types::MIGRATOR;
 
 mod form_types;
 mod types;

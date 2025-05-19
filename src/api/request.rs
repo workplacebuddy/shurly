@@ -1,12 +1,12 @@
 //! API request helpers
 
-use axum::extract::rejection::JsonRejection;
-use axum::extract::rejection::PathRejection;
 use axum::extract::FromRequest;
 use axum::extract::FromRequestParts;
 use axum::extract::Json;
 use axum::extract::Path;
 use axum::extract::Request;
+use axum::extract::rejection::JsonRejection;
+use axum::extract::rejection::PathRejection;
 use axum::http::request::Parts;
 use serde::de::DeserializeOwned;
 use unicode_normalization::UnicodeNormalization;

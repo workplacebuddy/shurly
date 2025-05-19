@@ -1,6 +1,6 @@
 use axum::http::StatusCode;
-use percent_encoding::utf8_percent_encode;
 use percent_encoding::NON_ALPHANUMERIC;
+use percent_encoding::utf8_percent_encode;
 
 use crate::tests::helper;
 

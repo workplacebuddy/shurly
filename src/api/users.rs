@@ -18,8 +18,6 @@ use crate::password::verify;
 use crate::users::Role;
 use crate::users::User;
 
-use super::current_user::generate_token;
-use super::current_user::Token;
 use super::AuditTrail;
 use super::CurrentUser;
 use super::Error;
@@ -27,6 +25,8 @@ use super::Form;
 use super::JwtKeys;
 use super::PathParameters;
 use super::Success;
+use super::current_user::Token;
+use super::current_user::generate_token;
 
 /// The user response information
 ///

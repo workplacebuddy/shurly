@@ -2,13 +2,13 @@
 //!
 //! The most important part of Shurly, the actual redirect logic
 
+use axum::Extension;
 use axum::http::StatusCode;
 use axum::http::Uri;
 use axum::response::Html;
 use axum::response::Redirect;
-use axum::Extension;
-use axum_extra::headers::UserAgent;
 use axum_extra::TypedHeader;
+use axum_extra::headers::UserAgent;
 use percent_encoding::percent_decode_str;
 
 use crate::client_ip::ClientIp;
