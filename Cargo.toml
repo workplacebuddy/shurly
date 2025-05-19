@@ -24,19 +24,20 @@ features = [
 ]
 
 [dependencies.axum]
-version = "0.7.9"
+version = "0.8.4"
 default-features = false
 features = [
     "form",
+    "http1",
     "json",
 ]
 
 [dependencies.axum-client-ip]
-version = "0.6.1"
+version = "1.0.0"
 default-features = false
 
 [dependencies.axum-extra]
-version = "0.9.6"
+version = "0.10.1"
 default-features = false
 features = [
     "tracing",

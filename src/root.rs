@@ -7,11 +7,11 @@ use axum::http::Uri;
 use axum::response::Html;
 use axum::response::Redirect;
 use axum::Extension;
-use axum_client_ip::InsecureClientIp;
 use axum_extra::headers::UserAgent;
 use axum_extra::TypedHeader;
 use percent_encoding::percent_decode_str;
 
+use crate::client_ip::ClientIp;
 use crate::database::Database;
 
 /// Template for 404 page
@@ -28,7 +28,7 @@ const ERROR: &str = include_str!("pages/500.html");
 ///
 /// A lookup in database will be done looking for the right slug, based on the path
 pub async fn root(
-    ip_address: Option<InsecureClientIp>,
+    client_ip: Option<ClientIp>,
     user_agent: Option<TypedHeader<UserAgent>>,
     Extension(database): Extension<Database>,
     uri: Uri,
@@ -47,7 +47,7 @@ pub async fn root(
         database
             .save_hit(
                 &destination,
-                ip_address.map(|i| i.0).as_ref(),
+                client_ip.map(|i| i.ip_address.0).as_ref(),
                 user_agent.map(|i| i.0.to_string()).as_ref(),
             )
             .await

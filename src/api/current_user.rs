@@ -5,7 +5,6 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
-use axum::async_trait;
 use axum::extract::FromRequestParts;
 use axum::http::request::Parts;
 use axum::Extension;
@@ -124,7 +123,6 @@ pub fn generate_token(jwt_keys: &JwtKeys, user: &User) -> Result<Token, Error> {
     Ok(Token::new(access_token, expires_in))
 }
 
-#[async_trait]
 impl<B> FromRequestParts<B> for CurrentUser
 where
     B: Send + Sync,

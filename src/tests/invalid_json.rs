@@ -17,7 +17,7 @@ async fn test_invalid_json(pool: sqlx::PgPool) {
     let error = error.unwrap();
     assert_eq!("Data error".to_string(), error.error);
     assert_eq!(
-        Some("Failed to deserialize the JSON body into the target type".to_string()),
+        Some("Failed to deserialize the JSON body into the target type: missing field `slug` at line 1 column 2".to_string()),
         error.description
     );
 

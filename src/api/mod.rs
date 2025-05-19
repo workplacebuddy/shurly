@@ -32,25 +32,25 @@ pub fn router() -> Router {
         .route("/", get(users::list))
         .route("/", post(users::create))
         .route("/me/password", put(users::change_password))
-        .route("/:user/password", put(users::change_password))
+        .route("/{user}/password", put(users::change_password))
         .route("/me", get(users::single))
-        .route("/:user", get(users::single))
-        .route("/:user", delete(users::delete));
+        .route("/{user}", get(users::single))
+        .route("/{user}", delete(users::delete));
 
     let notes = Router::new()
         .route("/", get(notes::list))
         .route("/", post(notes::create))
-        .route("/:note", get(notes::single))
-        .route("/:note", patch(notes::update))
-        .route("/:note", delete(notes::delete));
+        .route("/{note}", get(notes::single))
+        .route("/{note}", patch(notes::update))
+        .route("/{note}", delete(notes::delete));
 
     let destinations = Router::new()
         .route("/", get(destinations::list))
         .route("/", post(destinations::create))
-        .route("/:destination", get(destinations::single))
-        .route("/:destination", patch(destinations::update))
-        .route("/:destination", delete(destinations::delete))
-        .nest("/:destination/notes", notes);
+        .route("/{destination}", get(destinations::single))
+        .route("/{destination}", patch(destinations::update))
+        .route("/{destination}", delete(destinations::delete))
+        .nest("/{destination}/notes", notes);
 
     Router::new()
         .nest("/users", users)

@@ -1,6 +1,5 @@
 //! API request helpers
 
-use axum::async_trait;
 use axum::extract::rejection::JsonRejection;
 use axum::extract::rejection::PathRejection;
 use axum::extract::FromRequest;
@@ -83,7 +82,6 @@ fn handle_json<J>(json: Result<Json<J>, JsonRejection>) -> Result<J, Error> {
 /// Wrapper around the [`Json`](Json) extractor
 pub struct Form<F>(pub F);
 
-#[async_trait]
 impl<S, F> FromRequest<S> for Form<F>
 where
     S: Send + Sync,
@@ -121,7 +119,6 @@ fn handle_path<P>(path: Result<Path<P>, PathRejection>) -> Result<P, Error> {
 /// Wrapper around the [`Path`](Path) extractor
 pub struct PathParameters<P>(pub P);
 
-#[async_trait]
 impl<S, P> FromRequestParts<S> for PathParameters<P>
 where
     S: Send + Sync,

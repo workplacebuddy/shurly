@@ -12,6 +12,7 @@ use std::net::SocketAddr;
 use anyhow::Result;
 use axum::Extension;
 use axum::Router;
+use axum_client_ip::ClientIpSource;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::prelude::*;
@@ -24,6 +25,7 @@ use crate::users::ensure_initial_user;
 use crate::utils::env_var_or_else;
 
 mod api;
+pub mod client_ip;
 mod database;
 mod destinations;
 mod graceful_shutdown;
@@ -85,6 +87,7 @@ fn create_router(database: Database) -> Router {
     Router::new()
         .nest("/api", router())
         .fallback(root::root)
+        .layer(ClientIpSource::ConnectInfo.into_extension())
         .layer(TraceLayer::new_for_http())
         .layer(Extension(database))
         .layer(Extension(jwt_keys))
