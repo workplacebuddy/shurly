@@ -1,13 +1,13 @@
 [package]
 name = "shurly"
 version = "0.3.5"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 homepage = "https://github.com/workplacebuddy/shurly"
 description = "Shurly, this is a URL shortener with API management"
 repository = "https://github.com/workplacebuddy/shurly"
 readme = "README.md"
-rust-version = "1.82"
+rust-version = "1.85"
 
 [dependencies.anyhow]
 version = "1.0.97"

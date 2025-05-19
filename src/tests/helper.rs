@@ -53,9 +53,12 @@ pub struct Error {
 ///
 /// Inject some environment variables to match our tests
 pub async fn setup_test_app(pool: sqlx::PgPool) -> Router {
-    std::env::set_var("INITIAL_USERNAME", "admin");
-    std::env::set_var("INITIAL_PASSWORD", "verysecret");
-    std::env::set_var("JWT_SECRET", "verysecret");
+    #[allow(unsafe_code)]
+    unsafe {
+        std::env::set_var("INITIAL_USERNAME", "admin");
+        std::env::set_var("INITIAL_PASSWORD", "verysecret");
+        std::env::set_var("JWT_SECRET", "verysecret");
+    }
 
     setup_app(DatabaseConfig::ExistingConnection(pool))
         .await

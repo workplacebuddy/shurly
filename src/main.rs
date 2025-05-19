@@ -1,4 +1,4 @@
-#![forbid(unsafe_code)]
+#![warn(unsafe_code)]
 #![forbid(clippy::missing_docs_in_private_items)]
 #![warn(clippy::pedantic)]
 // easier to use when using the functions as callback of foreign functions
