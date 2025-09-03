@@ -132,7 +132,7 @@ version = "2.5.7"
 default-features = false
 
 [dependencies.uuid]
-version = "1.16.0"
+version = "1.18.1"
 default-features = false
 features = [
     "v4",
