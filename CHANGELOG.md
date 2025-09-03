@@ -4,6 +4,15 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.3.6
+
+### Fixes
+
+-   Upgrade to Axum 0.8
+-   Upgrade to latest `tracing-subscriber` (0.3.20) — Fixes GHSA-xwfj-jgwm-7wp5
+-   Upgrade all dependencies to their latest versions
+-   Update MSRV to 1.85
+
 ## Version 0.3.5
 
 ### Fixes
