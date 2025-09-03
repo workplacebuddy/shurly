@@ -119,7 +119,7 @@ version = "0.1.41"
 default-features = false
 
 [dependencies.tracing-subscriber]
-version = "0.3.19"
+version = "0.3.20"
 default-features = false
 features = [
     "ansi",
