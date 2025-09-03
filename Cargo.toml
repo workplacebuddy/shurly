@@ -75,7 +75,7 @@ features = [
 ]
 
 [dependencies.serde_json]
-version = "1.0.140"
+version = "1.0.143"
 default-features = false
 
 [dependencies.sqlx]
