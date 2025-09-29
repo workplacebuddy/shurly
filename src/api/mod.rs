@@ -1,22 +1,23 @@
 //! All API endpoint setup
 
-use axum::Router;
 use axum::routing::delete;
 use axum::routing::get;
 use axum::routing::patch;
 use axum::routing::post;
 use axum::routing::put;
+use axum::Router;
 
 pub use audit_trail::AuditTrail;
 pub use current_user::CurrentUser;
 pub use current_user::JwtKeys;
-pub use request::Form;
-pub use request::PathParameters;
 pub use request::parse_slug;
 pub use request::parse_url;
+pub use request::Form;
+pub use request::PathParameters;
 pub use response::Error;
 pub use response::Success;
 
+mod aliases;
 mod audit_trail;
 mod current_user;
 mod destinations;
@@ -24,6 +25,7 @@ mod notes;
 mod request;
 mod response;
 mod users;
+mod utils;
 
 /// Get the Axum router for all API routes
 pub fn router() -> Router {
@@ -36,6 +38,12 @@ pub fn router() -> Router {
         .route("/me", get(users::single))
         .route("/{user}", get(users::single))
         .route("/{user}", delete(users::delete));
+
+    let aliases = Router::new()
+        .route("/", get(aliases::list))
+        .route("/", post(aliases::create))
+        .route("/{alias}", get(aliases::single))
+        .route("/{alias}", delete(aliases::delete));
 
     let notes = Router::new()
         .route("/", get(notes::list))
@@ -50,6 +58,7 @@ pub fn router() -> Router {
         .route("/{destination}", get(destinations::single))
         .route("/{destination}", patch(destinations::update))
         .route("/{destination}", delete(destinations::delete))
+        .nest("/{destination}/aliases", aliases)
         .nest("/{destination}/notes", notes);
 
     Router::new()

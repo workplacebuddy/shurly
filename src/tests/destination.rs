@@ -29,7 +29,12 @@ async fn test_destination(pool: sqlx::PgPool) {
         helper::maybe_create_destination(&mut app, &access_token, slug, url).await;
     assert_eq!(StatusCode::BAD_REQUEST, status_code);
     assert!(destination.is_none());
-    assert_eq!(Some("Slug already exists".to_string()), error);
+    assert_eq!(
+        Some(format!(
+            "Slug already in use by destination ID {existing_destination_id}",
+        )),
+        error
+    );
 
     // delete destination
     let (status_code, _) =
@@ -47,7 +52,9 @@ async fn test_destination(pool: sqlx::PgPool) {
     assert_eq!(StatusCode::BAD_REQUEST, status_code);
     assert!(destination.is_none());
     assert_eq!(
-        Some("Slug already exists and is deleted".to_string()),
+        Some(format!(
+            "Slug already in use by now deleted destination ID {existing_destination_id}"
+        )),
         error
     );
 }

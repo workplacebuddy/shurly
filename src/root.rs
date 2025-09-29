@@ -2,16 +2,17 @@
 //!
 //! The most important part of Shurly, the actual redirect logic
 
-use axum::Extension;
 use axum::http::StatusCode;
 use axum::http::Uri;
 use axum::response::Html;
 use axum::response::Redirect;
-use axum_extra::TypedHeader;
+use axum::Extension;
 use axum_extra::headers::UserAgent;
+use axum_extra::TypedHeader;
 use percent_encoding::percent_decode_str;
 
 use crate::client_ip::ClientIp;
+use crate::database::fetch_destination_by_slug;
 use crate::database::Database;
 
 /// Template for 404 page
@@ -38,22 +39,24 @@ pub async fn root(
 
     tracing::debug!("Looking for slug: /{slug}");
 
-    let destination = database
-        .find_single_destination_by_slug(&slug)
+    let slug_found_summary = fetch_destination_by_slug(&database, &slug)
         .await
         .map_err(internal_error)?;
 
-    if let Some(destination) = destination {
+    if let Some(slug_found_summary) = slug_found_summary {
+        let destination = slug_found_summary.destination();
+
         database
             .save_hit(
-                &destination,
+                destination,
+                slug_found_summary.alias(),
                 client_ip.map(|i| i.ip_address.0).as_ref(),
                 user_agent.map(|i| i.0.to_string()).as_ref(),
             )
             .await
             .map_err(internal_error)?;
 
-        if destination.is_deleted() {
+        if slug_found_summary.is_deleted() {
             tracing::debug!(r#"Slug "{slug}" no longer exists"#);
 
             Err((

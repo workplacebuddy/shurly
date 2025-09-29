@@ -1,11 +1,12 @@
 //! API response helpers
 
-use axum::Json;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::response::Response;
+use axum::Json;
 use serde::Serialize;
 
+use crate::database::SlugFoundSummary;
 use crate::users::Role;
 
 /// Hold data for a successful API response
@@ -171,6 +172,33 @@ impl IntoResponse for Error {
             }),
         )
             .into_response()
+    }
+}
+
+impl SlugFoundSummary {
+    /// Convert the slug found summry into a proper API error
+    pub fn into_error(self) -> Error {
+        match self {
+            SlugFoundSummary::DestinationExists(destination) => Error::bad_request(format!(
+                "Slug already in use by destination ID {}",
+                destination.id
+            )),
+
+            SlugFoundSummary::DestinationDeleted(destination, _) => Error::bad_request(format!(
+                "Slug already in use by now deleted destination ID {}",
+                destination.id
+            )),
+
+            SlugFoundSummary::AliasExists(alias, destination) => Error::bad_request(format!(
+                "Slug already in use by alias ID {} for destination ID {}",
+                alias.id, destination.id
+            )),
+
+            SlugFoundSummary::AliasDeleted(alias, destination) => Error::bad_request(format!(
+                "Slug already in use by now deleted alias ID {} for destination ID {}",
+                alias.id, destination.id
+            )),
+        }
     }
 }
 

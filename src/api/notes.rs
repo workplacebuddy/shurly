@@ -8,11 +8,11 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::api::utils::fetch_destination;
 use crate::database::AuditEntry;
 use crate::database::CreateNoteValues;
 use crate::database::Database;
 use crate::database::UpdateNoteValues;
-use crate::destinations::Destination;
 use crate::notes::Note;
 use crate::users::Role;
 
@@ -256,18 +256,6 @@ pub async fn delete(
         .await;
 
     Ok(Success::<&'static str>::no_content())
-}
-
-/// Fetch destination from database
-async fn fetch_destination(
-    database: &Database,
-    destination_id: &Uuid,
-) -> Result<Destination, Error> {
-    database
-        .find_single_destination_by_id(destination_id)
-        .await
-        .map_err(Error::internal_server_error)?
-        .map_or_else(|| Err(Error::not_found("Destination not found")), Ok)
 }
 
 /// Fetch note from database

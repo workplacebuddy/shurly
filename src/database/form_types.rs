@@ -3,6 +3,7 @@
 use url::Url;
 use uuid::Uuid;
 
+use crate::aliases::Alias;
 use crate::destinations::Destination;
 use crate::notes::Note;
 use crate::users::Role;
@@ -59,6 +60,15 @@ pub struct UpdateDestinationValues<'a> {
     pub is_permanent: Option<&'a bool>,
 }
 
+/// Values to create an Alias
+pub struct CreateAliasValues<'a> {
+    /// User creating the note
+    pub user: &'a User,
+
+    /// Slug of the alias
+    pub slug: &'a str,
+}
+
 /// Values to create an Note
 pub struct CreateNoteValues<'a> {
     /// User creating the note
@@ -95,6 +105,12 @@ pub enum AuditEntry<'a> {
 
     /// Destination is deleted
     DeleteDestination(&'a Destination),
+
+    /// Alias is created
+    CreateAlias(&'a Destination, &'a Alias),
+
+    /// Alias is deleted
+    DeleteAlias(&'a Destination, &'a Alias),
 
     /// Note is created
     CreateNote(&'a Destination, &'a Note),

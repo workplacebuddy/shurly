@@ -4,21 +4,22 @@ use core::fmt;
 use std::net::IpAddr;
 use std::time::Duration;
 
-use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::types::ipnetwork::IpNetwork;
+use sqlx::PgPool;
 use uuid::Uuid;
 
-pub use Config as DatabaseConfig;
 pub use form_types::*;
+pub use Config as DatabaseConfig;
 
+use crate::aliases::Alias;
 use crate::destinations::Destination;
 use crate::notes::Note;
 use crate::users::User;
 use types::AuditEntryType;
-use types::MIGRATOR;
 use types::SqlxUser;
 use types::UserRoleType;
+use types::MIGRATOR;
 
 mod form_types;
 mod types;
@@ -367,6 +368,30 @@ impl Database {
         Ok(destination)
     }
 
+    /// Find a single destination by ID (unchecked)
+    ///
+    /// DOES NOT respect the soft-delete, handle with care
+    pub async fn find_single_destination_by_id_unchecked(
+        &self,
+        id: &Uuid,
+    ) -> Result<Option<Destination>> {
+        let destination = sqlx::query_as!(
+            Destination,
+            r#"
+            SELECT *
+            FROM destinations
+            WHERE id = $1
+            LIMIT 1
+            "#,
+            id,
+        )
+        .fetch_optional(&self.connection_pool)
+        .await
+        .map_err(connection_error)?;
+
+        Ok(destination)
+    }
+
     /// Create a destination
     pub async fn create_destination(
         &self,
@@ -429,6 +454,118 @@ impl Database {
             WHERE id = $1
             "#,
             &destination.id,
+        )
+        .execute(&self.connection_pool)
+        .await
+        .map_err(connection_error)?;
+
+        Ok(())
+    }
+
+    /// Find all aliases of a destination
+    ///
+    /// Respects the soft-delete
+    pub async fn find_all_aliases_by_destination(
+        &self,
+        destination: &Destination,
+    ) -> Result<Vec<Alias>> {
+        let aliases = sqlx::query_as!(
+            Alias,
+            r#"
+            SELECT *
+            FROM aliases
+            WHERE deleted_at IS NULL AND destination_id = $1
+            ORDER BY created_at DESC"#,
+            destination.id,
+        )
+        .fetch_all(&self.connection_pool)
+        .await
+        .map_err(connection_error)?;
+
+        Ok(aliases)
+    }
+
+    /// Find a single alias by slug
+    ///
+    /// DOES NOT respect the soft-delete, handle with care
+    pub async fn find_single_alias_by_slug(&self, slug: &'_ str) -> Result<Option<Alias>> {
+        let alias = sqlx::query_as!(
+            Alias,
+            r#"
+            SELECT *
+            FROM aliases
+            WHERE slug = $1
+            LIMIT 1
+            "#,
+            slug,
+        )
+        .fetch_optional(&self.connection_pool)
+        .await
+        .map_err(connection_error)?;
+
+        Ok(alias)
+    }
+
+    /// Find single alias of a destination
+    ///
+    /// Respects the soft-delete
+    pub async fn find_single_alias_by_id(
+        &self,
+        destination_id: &Uuid,
+        alias_id: &Uuid,
+    ) -> Result<Option<Alias>> {
+        let alias = sqlx::query_as!(
+            Alias,
+            r#"
+            SELECT *
+            FROM aliases
+            WHERE deleted_at IS NULL AND destination_id = $1 AND id = $2
+            LIMIT 1
+            "#,
+            destination_id,
+            alias_id,
+        )
+        .fetch_optional(&self.connection_pool)
+        .await
+        .map_err(connection_error)?;
+
+        Ok(alias)
+    }
+
+    /// Create an alias
+    pub async fn create_alias(
+        &self,
+        destination: &Destination,
+        values: &CreateAliasValues<'_>,
+    ) -> Result<Alias> {
+        let alias = sqlx::query_as!(
+            Alias,
+            r#"
+            INSERT INTO aliases (id, user_id, destination_id, slug)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *
+            "#,
+            Uuid::new_v4(),
+            values.user.id,
+            destination.id,
+            values.slug,
+        )
+        .fetch_one(&self.connection_pool)
+        .await
+        .map_err(connection_error)?;
+
+        Ok(alias)
+    }
+
+    /// Soft-delete an alias
+    pub async fn delete_alias(&self, alias: &Alias) -> Result<()> {
+        sqlx::query!(
+            r#"
+            UPDATE aliases
+            SET deleted_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+            "#,
+            &alias.id,
         )
         .execute(&self.connection_pool)
         .await
@@ -552,16 +689,18 @@ impl Database {
     pub async fn save_hit(
         &self,
         destination: &Destination,
+        alias: Option<&Alias>,
         ip_address: Option<&IpAddr>,
         user_agent: Option<&String>,
     ) -> Result<()> {
         sqlx::query!(
             r#"
-            INSERT INTO hits (id, destination_id, ip_address, user_agent)
-            VALUES ($1, $2, $3, $4)
+            INSERT INTO hits (id, destination_id, alias_id, ip_address, user_agent)
+            VALUES ($1, $2, $3, $4, $5)
             "#,
             Uuid::new_v4(),
             destination.id,
+            alias.map(|a| a.id),
             ip_address
                 .map(ToString::to_string)
                 .and_then(|ip| ip.parse::<IpNetwork>().ok()),
@@ -581,32 +720,40 @@ impl Database {
         entry: &AuditEntry<'_>,
         ip_address: Option<&IpAddr>,
     ) -> Result<()> {
-        let (user_id, destination_id, note_id) = match entry {
+        let (user_id, destination_id, alias_is, note_id) = match entry {
             AuditEntry::CreateUser(user)
             | AuditEntry::ChangePassword(user)
-            | AuditEntry::DeleteUser(user) => (Some(user.id), None, None),
+            | AuditEntry::DeleteUser(user) => (Some(user.id), None, None, None),
 
             AuditEntry::CreateDestination(destination)
             | AuditEntry::UpdateDestination(destination)
-            | AuditEntry::DeleteDestination(destination) => (None, Some(destination.id), None),
+            | AuditEntry::DeleteDestination(destination) => {
+                (None, Some(destination.id), None, None)
+            }
+
+            AuditEntry::CreateAlias(destination, alias)
+            | AuditEntry::DeleteAlias(destination, alias) => {
+                (None, Some(destination.id), Some(alias.id), None)
+            }
 
             AuditEntry::CreateNote(destination, note)
             | AuditEntry::UpdateNote(destination, note)
             | AuditEntry::DeleteNote(destination, note) => {
-                (None, Some(destination.id), Some(note.id))
+                (None, Some(destination.id), None, Some(note.id))
             }
         };
 
         sqlx::query!(
             r#"
-            INSERT INTO audit_trail (id, type, created_by, user_id, destination_id, note_id, ip_address)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO audit_trail (id, type, created_by, user_id, destination_id, alias_id, note_id, ip_address)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             "#,
             Uuid::new_v4(),
             AuditEntryType::from_audit_entry(entry) as _,
             created_by.id,
             user_id,
             destination_id,
+            alias_is,
             note_id,
             ip_address
                 .map(ToString::to_string)
@@ -626,4 +773,87 @@ where
     E: std::error::Error,
 {
     Error::Connection(err.to_string())
+}
+
+/// The result of trying to fetch a destination by slug
+#[derive(Debug)]
+pub enum SlugFoundSummary {
+    /// The destination exists and is not deleted
+    DestinationExists(Destination),
+
+    /// The destination exists but is deleted
+    DestinationDeleted(Destination, Option<Alias>),
+
+    /// The alias exists and is not deleted
+    AliasExists(Alias, Destination),
+
+    /// The alias exists but is deleted
+    AliasDeleted(Alias, Destination),
+}
+
+impl SlugFoundSummary {
+    /// Get the destination if it exists
+    pub fn destination(&self) -> &Destination {
+        match self {
+            Self::DestinationExists(destination)
+            | Self::DestinationDeleted(destination, _)
+            | Self::AliasExists(_, destination)
+            | Self::AliasDeleted(_, destination) => destination,
+        }
+    }
+
+    /// Get the alias if it exists
+    pub fn alias(&self) -> Option<&Alias> {
+        match self {
+            SlugFoundSummary::DestinationExists(_) => None,
+            Self::DestinationDeleted(_, alias) => alias.as_ref(),
+            Self::AliasExists(alias, _) | Self::AliasDeleted(alias, _) => Some(alias),
+        }
+    }
+
+    /// Is the destination or alias deleted?
+    pub fn is_deleted(&self) -> bool {
+        matches!(self, Self::DestinationDeleted(..) | Self::AliasDeleted(..))
+    }
+}
+
+/// Fetch destination from database by slug or alias slug
+pub async fn fetch_destination_by_slug(
+    database: &Database,
+    slug: &str,
+) -> Result<Option<SlugFoundSummary>> {
+    let destination = database.find_single_destination_by_slug(slug).await?;
+
+    if let Some(destination) = destination {
+        return if destination.is_deleted() {
+            Ok(Some(SlugFoundSummary::DestinationDeleted(
+                destination,
+                None,
+            )))
+        } else {
+            Ok(Some(SlugFoundSummary::DestinationExists(destination)))
+        };
+    }
+
+    let alias = database.find_single_alias_by_slug(slug).await?;
+
+    if let Some(alias) = alias {
+        let destination = database
+            .find_single_destination_by_id_unchecked(&alias.destination_id)
+            .await?
+            .expect("Alias has valid destination_id");
+
+        if destination.is_deleted() {
+            Ok(Some(SlugFoundSummary::DestinationDeleted(
+                destination,
+                Some(alias),
+            )))
+        } else if alias.is_deleted() {
+            Ok(Some(SlugFoundSummary::AliasDeleted(alias, destination)))
+        } else {
+            Ok(Some(SlugFoundSummary::AliasExists(alias, destination)))
+        }
+    } else {
+        Ok(None)
+    }
 }

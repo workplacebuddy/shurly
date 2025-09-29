@@ -1,3 +1,4 @@
+mod aliases;
 mod change_password;
 mod destination;
 mod destination_create;

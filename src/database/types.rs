@@ -65,7 +65,13 @@ pub enum AuditEntryType {
     /// Destination is deleted
     DeleteDestination,
 
-    /// Note is deleted
+    /// Alias is created
+    CreateAlias,
+
+    /// Alias is deleted
+    DeleteAlias,
+
+    /// Note is created
     CreateNote,
 
     /// Note is updated
@@ -86,6 +92,9 @@ impl AuditEntryType {
             AuditEntry::CreateDestination(_) => Self::CreateDestination,
             AuditEntry::UpdateDestination(_) => Self::UpdateDestination,
             AuditEntry::DeleteDestination(_) => Self::DeleteDestination,
+
+            AuditEntry::CreateAlias(_, _) => Self::CreateAlias,
+            AuditEntry::DeleteAlias(_, _) => Self::DeleteAlias,
 
             AuditEntry::CreateNote(_, _) => Self::CreateNote,
             AuditEntry::UpdateNote(_, _) => Self::UpdateNote,

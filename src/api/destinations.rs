@@ -8,6 +8,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::api::utils::fetch_destination;
+use crate::database::fetch_destination_by_slug;
 use crate::database::AuditEntry;
 use crate::database::CreateDestinationValues;
 use crate::database::Database;
@@ -15,14 +17,14 @@ use crate::database::UpdateDestinationValues;
 use crate::destinations::Destination;
 use crate::users::Role;
 
+use super::parse_slug;
+use super::parse_url;
 use super::AuditTrail;
 use super::CurrentUser;
 use super::Error;
 use super::Form;
 use super::PathParameters;
 use super::Success;
-use super::parse_slug;
-use super::parse_url;
 
 /// Destination response going to the user
 ///
@@ -178,17 +180,12 @@ pub async fn create(
         return Err(Error::bad_request("Slug can not start with 'api/'"));
     }
 
-    let destination = database
-        .find_single_destination_by_slug(&slug)
+    let slug_found_summary = fetch_destination_by_slug(&database, &slug)
         .await
         .map_err(Error::internal_server_error)?;
 
-    if let Some(destination) = destination {
-        if destination.is_deleted() {
-            Err(Error::bad_request("Slug already exists and is deleted"))
-        } else {
-            Err(Error::bad_request("Slug already exists"))
-        }
+    if let Some(slug_found_summary) = slug_found_summary {
+        Err(slug_found_summary.into_error())
     } else {
         let values = CreateDestinationValues {
             user: &current_user,
@@ -319,16 +316,4 @@ pub async fn delete(
         .await;
 
     Ok(Success::<&'static str>::no_content())
-}
-
-/// Fetch destination from database
-async fn fetch_destination(
-    database: &Database,
-    destination_id: &Uuid,
-) -> Result<Destination, Error> {
-    database
-        .find_single_destination_by_id(destination_id)
-        .await
-        .map_err(Error::internal_server_error)?
-        .map_or_else(|| Err(Error::not_found("Destination not found")), Ok)
 }

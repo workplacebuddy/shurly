@@ -1,12 +1,12 @@
-use axum::Router;
 use axum::body::Body;
 use axum::body::Bytes;
-use axum::http::Method;
-use axum::http::Request;
-use axum::http::StatusCode;
 use axum::http::header::AUTHORIZATION;
 use axum::http::header::CONTENT_TYPE;
 use axum::http::header::LOCATION;
+use axum::http::Method;
+use axum::http::Request;
+use axum::http::StatusCode;
+use axum::Router;
 use http_body_util::BodyExt;
 use serde_json::Map;
 use serde_json::Value;
@@ -33,6 +33,13 @@ pub struct Destination {
     pub slug: String,
     #[allow(dead_code)] // used by sqlx
     pub url: String,
+}
+
+/// Test helper version of Alias struct
+#[derive(Debug, PartialEq, Eq)]
+pub struct Alias {
+    pub id: Uuid,
+    pub slug: String,
 }
 
 /// Test helper version of Note struct
@@ -335,6 +342,170 @@ pub async fn myabe_delete_destination(
     let request = Request::builder()
         .method(Method::DELETE)
         .uri(format!("/api/destinations/{id}"))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    (
+        status_code,
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn maybe_create_alias(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    slug: &str,
+) -> (StatusCode, Option<Alias>, Option<String>) {
+    let mut payload = Map::new();
+    payload.insert("slug".to_string(), Value::String(slug.to_string()));
+
+    let request = Request::builder()
+        .method(Method::POST)
+        .uri(format!("/api/destinations/{destination_id}/aliases"))
+        .header(CONTENT_TYPE, mime::APPLICATION_JSON.as_ref())
+        .header(AUTHORIZATION, access_token)
+        .body(Body::from(serde_json::to_vec(&payload).unwrap()))
+        .unwrap();
+
+    let response = app.call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    (
+        status_code,
+        if status_code == StatusCode::CREATED {
+            Some(get_alias(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn list_aliases(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+) -> (StatusCode, Option<Vec<Alias>>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri(format!("/api/destinations/{destination_id}/aliases"))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_aliases(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn single_alias(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    alias_id: &Uuid,
+) -> (StatusCode, Option<Alias>, Option<String>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri(format!(
+            "/api/destinations/{destination_id}/aliases/{alias_id}",
+        ))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_alias(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST || status_code == StatusCode::NOT_FOUND {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn single_alias_with_str(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    alias_id: &str,
+) -> (StatusCode, Option<Alias>, Option<String>) {
+    let request = Request::builder()
+        .method(Method::GET)
+        .uri(format!(
+            "/api/destinations/{destination_id}/aliases/{alias_id}",
+        ))
+        .header(AUTHORIZATION, access_token)
+        .body(Body::empty())
+        .unwrap();
+
+    let response = app.call(request).await.unwrap();
+    let status_code = response.status();
+
+    let body = response.into_body().collect().await.unwrap().to_bytes();
+
+    (
+        status_code,
+        if status_code == StatusCode::OK {
+            Some(get_alias(&body))
+        } else {
+            None
+        },
+        if status_code == StatusCode::BAD_REQUEST || status_code == StatusCode::NOT_FOUND {
+            Some(get_error_message(&body))
+        } else {
+            None
+        },
+    )
+}
+
+pub async fn myabe_delete_alias(
+    app: &mut Router,
+    access_token: &str,
+    destination_id: &Uuid,
+    alias_id: &Uuid,
+) -> (StatusCode, Option<String>) {
+    let request = Request::builder()
+        .method(Method::DELETE)
+        .uri(format!(
+            "/api/destinations/{destination_id}/aliases/{alias_id}",
+        ))
         .header(AUTHORIZATION, access_token)
         .body(Body::empty())
         .unwrap();
@@ -776,6 +947,30 @@ fn get_destinations(body: &Bytes) -> Vec<Destination> {
         .iter()
         .map(|f| f.as_object().unwrap())
         .map(value_to_destination)
+        .collect()
+}
+
+fn value_to_alias(note: &Map<String, Value>) -> Alias {
+    Alias {
+        id: note["id"].as_str().map(Uuid::parse_str).unwrap().unwrap(),
+        slug: note["slug"].as_str().map(ToString::to_string).unwrap(),
+    }
+}
+
+fn get_alias(body: &Bytes) -> Alias {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]
+        .as_object()
+        .map(value_to_alias)
+        .unwrap()
+}
+
+fn get_aliases(body: &Bytes) -> Vec<Alias> {
+    serde_json::from_slice::<Value>(&body[..]).unwrap()["data"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|f| f.as_object().unwrap())
+        .map(value_to_alias)
         .collect()
 }
 

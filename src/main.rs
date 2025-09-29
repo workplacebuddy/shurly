@@ -17,13 +17,14 @@ use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::prelude::*;
 
-use crate::api::JwtKeys;
 use crate::api::router;
+use crate::api::JwtKeys;
 use crate::database::Database;
 use crate::database::DatabaseConfig;
 use crate::users::ensure_initial_user;
 use crate::utils::env_var_or_else;
 
+mod aliases;
 mod api;
 pub mod client_ip;
 mod database;
@@ -100,9 +101,9 @@ fn setup_environment() {
 
 /// Setup the tracing subscriber for logging
 fn setup_tracing() {
-    use tracing_subscriber::EnvFilter;
     use tracing_subscriber::fmt;
     use tracing_subscriber::registry;
+    use tracing_subscriber::EnvFilter;
 
     registry()
         .with(EnvFilter::new(
