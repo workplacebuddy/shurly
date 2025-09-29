@@ -120,3 +120,27 @@ async fn test_destination_create_api_prefix(pool: sqlx::PgPool) {
     assert_eq!(StatusCode::BAD_REQUEST, status_code);
     assert!(destination.is_none());
 }
+
+#[sqlx::test]
+async fn test_destination_create_unicode_normalization(pool: sqlx::PgPool) {
+    let mut app = helper::setup_test_app(pool).await;
+
+    let access_token = helper::login(&mut app).await;
+
+    // setup
+    let slug_one = String::from_utf8(vec![195, 164]).unwrap();
+    let slug_two = String::from_utf8(vec![97, 204, 136]).unwrap();
+    let url = "https://www.example.com/";
+
+    // create destination with non-nomalized slug
+    let (status_code, destination, _) =
+        helper::maybe_create_destination(&mut app, &access_token, &slug_two, url).await;
+    assert_eq!(StatusCode::CREATED, status_code);
+    assert!(destination.is_some());
+
+    let (status_code, _, _) = helper::root(&mut app, &slug_one).await;
+    assert_eq!(StatusCode::TEMPORARY_REDIRECT, status_code);
+
+    let (status_code, _, _) = helper::root(&mut app, &slug_two).await;
+    assert_eq!(StatusCode::TEMPORARY_REDIRECT, status_code);
+}

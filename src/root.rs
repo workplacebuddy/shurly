@@ -10,6 +10,7 @@ use axum::Extension;
 use axum_extra::headers::UserAgent;
 use axum_extra::TypedHeader;
 use percent_encoding::percent_decode_str;
+use unicode_normalization::UnicodeNormalization;
 
 use crate::client_ip::ClientIp;
 use crate::database::fetch_destination_by_slug;
@@ -93,13 +94,17 @@ where
 
 /// URL decode slug
 ///
+/// Will:
+/// - Convert percent encoded characters to their UTF-8 representation
+/// - Normalize the slug to NFC form (same as database storage)
+///
 /// Uses percentage encoding for the decoding, might error in case of invalid UTF-8
 fn url_decode_slug(slug: &str) -> Result<String, (StatusCode, Html<String>)> {
     let decoded = percent_decode_str(slug);
 
     decoded
         .decode_utf8()
-        .map(|decoded| decoded.to_string())
+        .map(|decoded| decoded.nfc().to_string())
         .map_err(|_| {
             (
                 StatusCode::BAD_REQUEST,
@@ -130,6 +135,19 @@ mod tests {
     fn test_url_decode_slug_space() {
         let slug = url_decode_slug("%20").unwrap();
         assert_eq!(" ".to_string(), slug);
+    }
+
+    #[test]
+    fn test_url_decode_slug_unicode() {
+        // 'ä' with a single code point U+00E4
+        let slug_one = String::from_utf8(vec![195, 164]).unwrap();
+        assert_eq!(url_decode_slug(&slug_one).unwrap(), slug_one);
+
+        // 'ä' with two code points: U+0061 U+03080
+        let slug_two = String::from_utf8(vec![97, 204, 136]).unwrap();
+
+        // the two code points are normalized to U+00E4
+        assert_eq!(url_decode_slug(&slug_two).unwrap(), slug_one);
     }
 
     #[test]

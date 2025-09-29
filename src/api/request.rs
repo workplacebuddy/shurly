@@ -21,6 +21,7 @@ use super::Error;
 /// Will:
 /// - Remove leading and trailing slashes
 /// - Reject if slug contains `?` or `#`
+/// - Will normalize the slug to NFC form
 ///
 /// Will return an [`Error`](Error) when the slug contains invalid characters
 ///
