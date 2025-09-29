@@ -485,6 +485,32 @@ impl Database {
         Ok(aliases)
     }
 
+    /// Find all aliases of all destinations
+    ///
+    /// Respects the soft-delete
+    pub async fn find_all_aliases_by_destinations(
+        &self,
+        destinations: &[Destination],
+    ) -> Result<Vec<Alias>> {
+        if destinations.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let aliases = sqlx::query_as::<_, Alias>(
+            r"
+            SELECT *
+            FROM aliases
+            WHERE deleted_at IS NULL AND destination_id = ANY($1)
+            ORDER BY created_at DESC",
+        )
+        .bind(destinations.iter().map(|d| d.id).collect::<Vec<Uuid>>())
+        .fetch_all(&self.connection_pool)
+        .await
+        .map_err(connection_error)?;
+
+        Ok(aliases)
+    }
+
     /// Find a single alias by slug
     ///
     /// DOES NOT respect the soft-delete, handle with care

@@ -1,10 +1,11 @@
 //! Aliases
 
 use chrono::naive::NaiveDateTime;
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 /// Alias for a destination
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, FromRow)]
 pub struct Alias {
     /// Destination ID
     pub id: Uuid,

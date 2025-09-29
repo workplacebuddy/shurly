@@ -1,14 +1,16 @@
 //! API request helpers
 
+use axum::extract::rejection::JsonRejection;
+use axum::extract::rejection::PathRejection;
 use axum::extract::FromRequest;
 use axum::extract::FromRequestParts;
 use axum::extract::Json;
 use axum::extract::Path;
+use axum::extract::Query;
 use axum::extract::Request;
-use axum::extract::rejection::JsonRejection;
-use axum::extract::rejection::PathRejection;
 use axum::http::request::Parts;
 use serde::de::DeserializeOwned;
+use serde::Deserialize;
 use unicode_normalization::UnicodeNormalization;
 use url::Url;
 
@@ -132,6 +134,52 @@ where
             .map_err(|_| Error::internal_server_error("Could not extract path"))?;
 
         handle_path(path).map(PathParameters)
+    }
+}
+
+/// What should be included?
+#[derive(Debug, Default)]
+pub struct IncludeParameters {
+    /// Should the aliases be included?
+    pub aliases: bool,
+}
+
+/// The include query parameter
+#[derive(Deserialize)]
+struct IncludeQueryParameter {
+    /// The include query parameter
+    include: Option<String>,
+}
+
+impl<S> FromRequestParts<S> for IncludeParameters
+where
+    S: Send + Sync,
+{
+    type Rejection = Error;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let include_query_parameter =
+            Query::<IncludeQueryParameter>::from_request_parts(parts, state)
+                .await
+                .map_err(|_| {
+                    Error::internal_server_error("Could not extract include query parameter")
+                })?;
+
+        let mut include_parameters = IncludeParameters { aliases: false };
+
+        if let Some(include) = &include_query_parameter.include {
+            for part in include.split(',') {
+                match part.trim() {
+                    "aliases" => include_parameters.aliases = true,
+                    unknown => {
+                        return Err(Error::bad_request("Unknown include parameter")
+                            .with_description(format!("Unknown include parameter: {unknown}")))
+                    }
+                }
+            }
+        }
+
+        Ok(include_parameters)
     }
 }
 

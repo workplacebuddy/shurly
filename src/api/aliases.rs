@@ -63,7 +63,7 @@ impl AliasResponse {
     /// Create a response from multiple [`Alias`](Alias)s
     ///
     /// Basically filtering which fields are shown to the user
-    fn from_alias_multiple(mut aliases: Vec<Alias>) -> Vec<Self> {
+    pub fn from_alias_multiple(mut aliases: Vec<Alias>) -> Vec<Self> {
         aliases
             .drain(..)
             .map(Self::from_alias)

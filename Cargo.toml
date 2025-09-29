@@ -30,6 +30,7 @@ features = [
     "form",
     "http1",
     "json",
+    "query",
 ]
 
 [dependencies.axum-client-ip]

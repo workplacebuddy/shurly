@@ -8,6 +8,9 @@ use serde::Deserialize;
 use serde::Serialize;
 use uuid::Uuid;
 
+use crate::aliases::Alias;
+use crate::api::aliases::AliasResponse;
+use crate::api::request::IncludeParameters;
 use crate::api::utils::fetch_destination;
 use crate::database::fetch_destination_by_slug;
 use crate::database::AuditEntry;
@@ -49,13 +52,16 @@ pub struct DestinationResponse {
 
     /// Last updated at
     pub updated_at: NaiveDateTime,
+
+    /// List of aliases
+    pub aliases: Option<Vec<AliasResponse>>,
 }
 
 impl DestinationResponse {
     /// Create a response from a [`Destination`](Destination)
     ///
     /// Basically filtering which fields are shown to the user
-    fn from_destination(destination: Destination) -> Self {
+    fn from_destination(destination: Destination, aliases: Option<Vec<Alias>>) -> Self {
         Self {
             id: destination.id,
             slug: destination.slug,
@@ -63,16 +69,32 @@ impl DestinationResponse {
             is_permanent: destination.is_permanent,
             created_at: destination.created_at,
             updated_at: destination.updated_at,
+            aliases: aliases.map(AliasResponse::from_alias_multiple),
         }
     }
 
     /// Create a response from multiple [`Destination`](Destination)s
     ///
     /// Basically filtering which fields are shown to the user
-    fn from_destination_multiple(mut destinations: Vec<Destination>) -> Vec<Self> {
+    fn from_destination_multiple(
+        mut destinations: Vec<Destination>,
+        mut aliases: Option<Vec<Alias>>,
+    ) -> Vec<Self> {
         destinations
             .drain(..)
-            .map(Self::from_destination)
+            .map(|destination| {
+                let filtered_aliases = aliases.as_mut().map(|aliases| {
+                    let (for_destination, rest): (Vec<Alias>, Vec<Alias>) = aliases
+                        .drain(..)
+                        .partition(|alias| alias.destination_id == destination.id);
+
+                    *aliases = rest;
+
+                    for_destination
+                });
+
+                Self::from_destination(destination, filtered_aliases)
+            })
             .collect::<Vec<Self>>()
     }
 }
@@ -90,9 +112,24 @@ impl DestinationResponse {
 /// ```json
 /// { "data": [ { "id": "<uuid>", "slug": "some-easy-name" ... } ] }
 /// ```
+///
+/// Optionally the aliases of the destinations can be included:
+///
+/// Request:
+/// ```sh
+/// curl -v -H 'Content-Type: application/json' \
+///     -H 'Authorization: Bearer tokentokentoken' \
+///     http://localhost:7000/api/destinations?include=aliases
+/// ```
+///
+/// Response:
+/// ```json
+/// { "data": [ { "id": "<uuid>", "slug": "some-easy-name", ..., "aliases": [ { "id": "<uuid>", ... } ] } ] }
+/// ```
 pub async fn list(
     Extension(database): Extension<Database>,
     current_user: CurrentUser,
+    include_parameters: IncludeParameters,
 ) -> Result<Success<Vec<DestinationResponse>>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
@@ -101,8 +138,20 @@ pub async fn list(
         .await
         .map_err(Error::internal_server_error)?;
 
+    let aliases = if include_parameters.aliases {
+        let aliases = database
+            .find_all_aliases_by_destinations(&destinations)
+            .await
+            .map_err(Error::internal_server_error)?;
+
+        Some(aliases)
+    } else {
+        None
+    };
+
     Ok(Success::ok(DestinationResponse::from_destination_multiple(
         destinations,
+        aliases,
     )))
 }
 
@@ -119,16 +168,45 @@ pub async fn list(
 /// ```json
 /// { "data": { "id": "<uuid>", "slug": "some-easy-name" ... } }
 /// ```
+///
+/// Optionally the aliases of the destinations can be included:
+///
+/// Request:
+/// ```sh
+/// curl -v -H 'Content-Type: application/json' \
+///     -H 'Authorization: Bearer tokentokentoken' \
+///     http://localhost:7000/api/destinations/<uuid>?include=aliases
+/// ```
+///
+/// Response:
+/// ```json
+/// { "data": { "id": "<uuid>", "slug": "some-easy-name", ..., "aliases": [ { "id": "<uuid>", ... } ] } }
+/// ```
 pub async fn single(
     Extension(database): Extension<Database>,
     current_user: CurrentUser,
     PathParameters(destination_id): PathParameters<Uuid>,
+    include_parameters: IncludeParameters,
 ) -> Result<Success<DestinationResponse>, Error> {
     current_user.role.is_allowed(Role::Manager)?;
 
-    fetch_destination(&database, &destination_id)
-        .await
-        .map(|destination| Success::ok(DestinationResponse::from_destination(destination)))
+    let destination = fetch_destination(&database, &destination_id).await?;
+
+    let aliases = if include_parameters.aliases {
+        let aliases = database
+            .find_all_aliases_by_destination(&destination)
+            .await
+            .map_err(Error::internal_server_error)?;
+
+        Some(aliases)
+    } else {
+        None
+    };
+
+    Ok(Success::ok(DestinationResponse::from_destination(
+        destination,
+        aliases,
+    )))
 }
 
 /// Create destination form
@@ -205,6 +283,7 @@ pub async fn create(
 
         Ok(Success::created(DestinationResponse::from_destination(
             destination,
+            None,
         )))
     }
 }
@@ -279,6 +358,7 @@ pub async fn update(
 
     Ok(Success::ok(DestinationResponse::from_destination(
         updated_destination,
+        None,
     )))
 }
 
