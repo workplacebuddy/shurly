@@ -1,10 +1,11 @@
 //! Notes
 
 use chrono::naive::NaiveDateTime;
+use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 /// A note in all its glory
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, FromRow)]
 pub struct Note {
     /// The note ID
     pub id: Uuid,

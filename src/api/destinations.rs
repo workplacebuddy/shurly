@@ -2,6 +2,8 @@
 //!
 //! Everything related to the destinations management
 
+use std::marker::PhantomData;
+
 use axum::Extension;
 use chrono::NaiveDateTime;
 use serde::Deserialize;
@@ -10,6 +12,7 @@ use uuid::Uuid;
 
 use crate::aliases::Alias;
 use crate::api::aliases::AliasResponse;
+use crate::api::notes::NoteResponse;
 use crate::api::request::IncludeParameters;
 use crate::api::utils::fetch_destination;
 use crate::database::fetch_destination_by_slug;
@@ -18,6 +21,7 @@ use crate::database::CreateDestinationValues;
 use crate::database::Database;
 use crate::database::UpdateDestinationValues;
 use crate::destinations::Destination;
+use crate::notes::Note;
 use crate::users::Role;
 
 use super::parse_slug;
@@ -55,13 +59,20 @@ pub struct DestinationResponse {
 
     /// List of aliases
     pub aliases: Option<Vec<AliasResponse>>,
+
+    /// List of notes
+    pub notes: Option<Vec<NoteResponse>>,
 }
 
 impl DestinationResponse {
     /// Create a response from a [`Destination`](Destination)
     ///
     /// Basically filtering which fields are shown to the user
-    fn from_destination(destination: Destination, aliases: Option<Vec<Alias>>) -> Self {
+    fn from_destination(
+        destination: Destination,
+        aliases: Option<Vec<Alias>>,
+        notes: Option<Vec<Note>>,
+    ) -> Self {
         Self {
             id: destination.id,
             slug: destination.slug,
@@ -70,20 +81,109 @@ impl DestinationResponse {
             created_at: destination.created_at,
             updated_at: destination.updated_at,
             aliases: aliases.map(AliasResponse::from_alias_multiple),
+            notes: notes.map(NoteResponse::from_note_multiple),
+        }
+    }
+}
+
+/// Marker for single destination response builder
+struct Single;
+
+/// Marker for multiple destinations response builder
+struct Multiple;
+
+/// Destination response builder
+struct DestinationResponseBuilder<T> {
+    /// Single destination when building a single response
+    single: Option<Destination>,
+
+    /// Multiple destinations when building multiple responses
+    multiple: Option<Vec<Destination>>,
+
+    /// Optional aliases to include in the response(s)
+    aliases: Option<Vec<Alias>>,
+
+    /// Optional notes to include in the response(s)
+    notes: Option<Vec<Note>>,
+
+    /// Magic
+    _marker: PhantomData<T>,
+}
+
+impl<T> DestinationResponseBuilder<T> {
+    /// With aliases to include in the response(s)
+    fn with_aliases(mut self, aliases: Vec<Alias>) -> Self {
+        self.aliases = Some(aliases);
+        self
+    }
+
+    /// With notes to include in the response(s)
+    fn with_notes(mut self, notes: Vec<Note>) -> Self {
+        self.notes = Some(notes);
+        self
+    }
+}
+
+impl DestinationResponseBuilder<Single> {
+    /// Create a response builder for a single [`Destination`](Destination)
+    fn new(destination: Destination) -> DestinationResponseBuilder<Single> {
+        DestinationResponseBuilder {
+            single: Some(destination),
+            multiple: None,
+            aliases: None,
+            notes: None,
+            _marker: PhantomData,
         }
     }
 
-    /// Create a response from multiple [`Destination`](Destination)s
+    /// Current destinations
     ///
-    /// Basically filtering which fields are shown to the user
-    fn from_destination_multiple(
-        mut destinations: Vec<Destination>,
-        mut aliases: Option<Vec<Alias>>,
-    ) -> Vec<Self> {
+    /// Just a single one
+    fn destinations(&self) -> &[Destination] {
+        self.single
+            .as_ref()
+            .map(std::slice::from_ref)
+            .expect("Single destination must be provided")
+    }
+
+    /// Build the single destination response
+    fn build(self) -> DestinationResponse {
+        let destination = self.single.expect("Single destination must be provided");
+
+        DestinationResponse::from_destination(destination, self.aliases, self.notes)
+    }
+}
+
+impl DestinationResponseBuilder<Multiple> {
+    /// Create a response builder for multiple [`Destination`](Destination)s
+    fn new(destinations: Vec<Destination>) -> DestinationResponseBuilder<Multiple> {
+        DestinationResponseBuilder {
+            single: None,
+            multiple: Some(destinations),
+            aliases: None,
+            notes: None,
+            _marker: PhantomData,
+        }
+    }
+
+    /// Current destinations
+    fn destinations(&self) -> &[Destination] {
+        self.multiple
+            .as_ref()
+            .expect("Multiple destinations must be provided")
+    }
+
+    /// Build the multiple destinations response
+    fn build(mut self) -> Vec<DestinationResponse> {
+        let mut destinations = self
+            .multiple
+            .take()
+            .expect("Multiple destinations must be provided");
+
         destinations
             .drain(..)
             .map(|destination| {
-                let filtered_aliases = aliases.as_mut().map(|aliases| {
+                let filtered_aliases = self.aliases.as_mut().map(|aliases| {
                     let (for_destination, rest): (Vec<Alias>, Vec<Alias>) = aliases
                         .drain(..)
                         .partition(|alias| alias.destination_id == destination.id);
@@ -93,9 +193,19 @@ impl DestinationResponse {
                     for_destination
                 });
 
-                Self::from_destination(destination, filtered_aliases)
+                let filtered_notes = self.notes.as_mut().map(|notes| {
+                    let (for_destination, rest): (Vec<Note>, Vec<Note>) = notes
+                        .drain(..)
+                        .partition(|note| note.destination_id == destination.id);
+
+                    *notes = rest;
+
+                    for_destination
+                });
+
+                DestinationResponse::from_destination(destination, filtered_aliases, filtered_notes)
             })
-            .collect::<Vec<Self>>()
+            .collect()
     }
 }
 
@@ -138,21 +248,27 @@ pub async fn list(
         .await
         .map_err(Error::internal_server_error)?;
 
-    let aliases = if include_parameters.aliases {
+    let mut builder = DestinationResponseBuilder::<Multiple>::new(destinations);
+
+    if include_parameters.aliases {
         let aliases = database
-            .find_all_aliases_by_destinations(&destinations)
+            .find_all_aliases_by_destinations(builder.destinations())
             .await
             .map_err(Error::internal_server_error)?;
 
-        Some(aliases)
-    } else {
-        None
-    };
+        builder = builder.with_aliases(aliases);
+    }
 
-    Ok(Success::ok(DestinationResponse::from_destination_multiple(
-        destinations,
-        aliases,
-    )))
+    if include_parameters.notes {
+        let notes = database
+            .find_all_notes_by_destinations(builder.destinations())
+            .await
+            .map_err(Error::internal_server_error)?;
+
+        builder = builder.with_notes(notes);
+    }
+
+    Ok(Success::ok(builder.build()))
 }
 
 /// Get a single destination
@@ -192,21 +308,27 @@ pub async fn single(
 
     let destination = fetch_destination(&database, &destination_id).await?;
 
-    let aliases = if include_parameters.aliases {
+    let mut builder = DestinationResponseBuilder::<Single>::new(destination);
+
+    if include_parameters.aliases {
         let aliases = database
-            .find_all_aliases_by_destination(&destination)
+            .find_all_aliases_by_destinations(builder.destinations())
             .await
             .map_err(Error::internal_server_error)?;
 
-        Some(aliases)
-    } else {
-        None
-    };
+        builder = builder.with_aliases(aliases);
+    }
 
-    Ok(Success::ok(DestinationResponse::from_destination(
-        destination,
-        aliases,
-    )))
+    if include_parameters.notes {
+        let notes = database
+            .find_all_notes_by_destinations(builder.destinations())
+            .await
+            .map_err(Error::internal_server_error)?;
+
+        builder = builder.with_notes(notes);
+    }
+
+    Ok(Success::ok(builder.build()))
 }
 
 /// Create destination form
@@ -281,10 +403,9 @@ pub async fn create(
             .register(AuditEntry::CreateDestination(&destination))
             .await;
 
-        Ok(Success::created(DestinationResponse::from_destination(
-            destination,
-            None,
-        )))
+        let builder = DestinationResponseBuilder::<Single>::new(destination);
+
+        Ok(Success::created(builder.build()))
     }
 }
 
@@ -356,10 +477,9 @@ pub async fn update(
         .register(AuditEntry::UpdateDestination(&destination))
         .await;
 
-    Ok(Success::ok(DestinationResponse::from_destination(
-        updated_destination,
-        None,
-    )))
+    let builder = DestinationResponseBuilder::<Single>::new(updated_destination);
+
+    Ok(Success::ok(builder.build()))
 }
 
 /// Delete a destination

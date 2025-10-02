@@ -143,6 +143,9 @@ where
 pub struct IncludeParameters {
     /// Should the aliases be included?
     pub aliases: bool,
+
+    /// Should the notes be included?
+    pub notes: bool,
 }
 
 /// The include query parameter
@@ -166,12 +169,16 @@ where
                     Error::internal_server_error("Could not extract include query parameter")
                 })?;
 
-        let mut include_parameters = IncludeParameters { aliases: false };
+        let mut include_parameters = IncludeParameters {
+            aliases: false,
+            notes: false,
+        };
 
         if let Some(include) = &include_query_parameter.include {
             for part in include.split(',') {
                 match part.trim() {
                     "aliases" => include_parameters.aliases = true,
+                    "notes" => include_parameters.notes = true,
                     unknown => {
                         return Err(Error::bad_request("Unknown include parameter")
                             .with_description(format!("Unknown include parameter: {unknown}")))

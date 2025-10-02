@@ -32,6 +32,9 @@ pub struct NoteResponse {
     /// Note ID
     pub id: Uuid,
 
+    /// Destination ID
+    pub destination_id: Uuid,
+
     /// Content of the note
     pub content: String,
 
@@ -49,6 +52,7 @@ impl NoteResponse {
     fn from_note(note: Note) -> Self {
         Self {
             id: note.id,
+            destination_id: note.destination_id,
             content: note.content,
             created_at: note.created_at,
             updated_at: note.updated_at,
@@ -58,7 +62,7 @@ impl NoteResponse {
     /// Create a response from multiple [`Note`](Note)s
     ///
     /// Basically filtering which fields are shown to the user
-    fn from_note_multiple(mut notes: Vec<Note>) -> Vec<Self> {
+    pub fn from_note_multiple(mut notes: Vec<Note>) -> Vec<Self> {
         notes.drain(..).map(Self::from_note).collect::<Vec<Self>>()
     }
 }

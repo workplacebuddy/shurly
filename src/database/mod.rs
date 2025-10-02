@@ -623,6 +623,32 @@ impl Database {
         Ok(notes)
     }
 
+    /// Find all notes of all destinations
+    ///
+    /// Respects the soft-delete
+    pub async fn find_all_notes_by_destinations(
+        &self,
+        destinations: &[Destination],
+    ) -> Result<Vec<Note>> {
+        if destinations.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let aliases = sqlx::query_as::<_, Note>(
+            r"
+            SELECT *
+            FROM notes
+            WHERE deleted_at IS NULL AND destination_id = ANY($1)
+            ORDER BY created_at DESC",
+        )
+        .bind(destinations.iter().map(|d| d.id).collect::<Vec<Uuid>>())
+        .fetch_all(&self.connection_pool)
+        .await
+        .map_err(connection_error)?;
+
+        Ok(aliases)
+    }
+
     /// Find single note of a destination
     ///
     /// Respects the soft-delete
