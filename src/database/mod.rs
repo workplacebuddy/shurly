@@ -400,8 +400,8 @@ impl Database {
         let destination = sqlx::query_as!(
             Destination,
             r#"
-            INSERT INTO destinations (id, user_id, slug, url, is_permanent)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO destinations (id, user_id, slug, url, is_permanent, forward_query_parameters)
+            VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
             "#,
             Uuid::new_v4(),
@@ -409,6 +409,7 @@ impl Database {
             values.slug,
             values.url.to_string(),
             values.is_permanent,
+            values.forward_query_parameters,
         )
         .fetch_one(&self.connection_pool)
         .await
@@ -427,8 +428,8 @@ impl Database {
             Destination,
             r#"
             UPDATE destinations
-            SET url = $1, is_permanent = $2, updated_at = CURRENT_TIMESTAMP
-            WHERE id = $3
+            SET url = $1, is_permanent = $2, forward_query_parameters = $3, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $4
             RETURNING *
             "#,
             values
@@ -436,6 +437,9 @@ impl Database {
                 .as_ref()
                 .map_or(destination.url.clone(), ToString::to_string),
             values.is_permanent.unwrap_or(&destination.is_permanent),
+            values
+                .forward_query_parameters
+                .unwrap_or(&destination.forward_query_parameters),
             &destination.id,
         )
         .fetch_one(&self.connection_pool)

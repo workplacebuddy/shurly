@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            UPDATE destinations\n            SET url = $1, is_permanent = $2, updated_at = CURRENT_TIMESTAMP\n            WHERE id = $3\n            RETURNING *\n            ",
+  "query": "\n            INSERT INTO destinations (id, user_id, slug, url, is_permanent, forward_query_parameters)\n            VALUES ($1, $2, $3, $4, $5, $6)\n            RETURNING *\n            ",
   "describe": {
     "columns": [
       {
@@ -42,13 +42,21 @@
         "ordinal": 7,
         "name": "deleted_at",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "forward_query_parameters",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
+        "Uuid",
+        "Varchar",
         "Varchar",
         "Bool",
-        "Uuid"
+        "Bool"
       ]
     },
     "nullable": [
@@ -59,8 +67,9 @@
       false,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
-  "hash": "20923e16f89aa06602984b74a6557b0f120e636929857cfa1a074096065463ca"
+  "hash": "82fe267617309de82391497cfca4b6d3e3b9ee6b7c6ad72e7b13cad59526e55b"
 }

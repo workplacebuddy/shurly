@@ -42,6 +42,11 @@
         "ordinal": 7,
         "name": "deleted_at",
         "type_info": "Timestamp"
+      },
+      {
+        "ordinal": 8,
+        "name": "forward_query_parameters",
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -57,7 +62,8 @@
       false,
       false,
       false,
-      true
+      true,
+      false
     ]
   },
   "hash": "3a4423125daa4351e543b106cf8b5c23fdc7e1df7bd88a89c510c31b8bd20a18"

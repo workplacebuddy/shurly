@@ -33,6 +33,7 @@ pub struct Destination {
     pub slug: String,
     #[allow(dead_code)] // used by sqlx
     pub url: String,
+    pub forward_query_parameters: bool,
 }
 
 /// Test helper version of Alias struct
@@ -72,10 +73,14 @@ pub async fn setup_test_app(pool: sqlx::PgPool) -> Router {
         .unwrap()
 }
 
-pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>, String) {
+pub async fn root_with_query(
+    app: &mut Router,
+    slug: &str,
+    query: &str,
+) -> (StatusCode, Option<String>, String) {
     let request = Request::builder()
         .method(Method::GET)
-        .uri(format!("/{slug}"))
+        .uri(format!("/{slug}{query}"))
         .body(Body::empty())
         .unwrap();
 
@@ -91,6 +96,10 @@ pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>, 
     let body = String::from_utf8_lossy(&body[..]).to_string();
 
     (status_code, location, body)
+}
+
+pub async fn root(app: &mut Router, slug: &str) -> (StatusCode, Option<String>, String) {
+    root_with_query(app, slug, "").await
 }
 
 pub async fn login_with_password(app: &mut Router, password: &str) -> String {
@@ -213,17 +222,24 @@ pub async fn list_destinations(
     )
 }
 
-pub async fn maybe_create_destination_with_is_permanent(
+async fn maybe_create_destination_with_info(
     app: &mut Router,
     access_token: &str,
     slug: &str,
     url: &str,
     is_permanent: bool,
+    forward_query_parameters: bool,
 ) -> (StatusCode, Option<Destination>, Option<String>) {
     let mut payload = Map::new();
     payload.insert("slug".to_string(), Value::String(slug.to_string()));
     payload.insert("url".to_string(), Value::String(url.to_string()));
     payload.insert("isPermanent".to_string(), Value::Bool(is_permanent));
+    payload.insert(
+        "forwardQueryParameters".to_string(),
+        Value::Bool(forward_query_parameters),
+    );
+
+    eprintln!("Payload: {payload:#?}");
 
     let request = Request::builder()
         .method(Method::POST)
@@ -259,7 +275,35 @@ pub async fn maybe_create_destination(
     slug: &str,
     url: &str,
 ) -> (StatusCode, Option<Destination>, Option<String>) {
-    maybe_create_destination_with_is_permanent(app, access_token, slug, url, false).await
+    maybe_create_destination_with_info(app, access_token, slug, url, false, false).await
+}
+
+pub async fn maybe_create_destination_with_is_permanent(
+    app: &mut Router,
+    access_token: &str,
+    slug: &str,
+    url: &str,
+    is_permanent: bool,
+) -> (StatusCode, Option<Destination>, Option<String>) {
+    maybe_create_destination_with_info(app, access_token, slug, url, is_permanent, false).await
+}
+
+pub async fn maybe_create_destination_with_forward_query_param(
+    app: &mut Router,
+    access_token: &str,
+    slug: &str,
+    url: &str,
+    forward_query_parameters: bool,
+) -> (StatusCode, Option<Destination>, Option<String>) {
+    maybe_create_destination_with_info(
+        app,
+        access_token,
+        slug,
+        url,
+        false,
+        forward_query_parameters,
+    )
+    .await
 }
 
 pub async fn maybe_create_destination_with_raw_body(
@@ -916,6 +960,7 @@ fn get_users(body: &Bytes) -> Vec<User> {
 }
 
 fn value_to_destination(destination: &Map<String, Value>) -> Destination {
+    eprintln!("Destination value: {destination:#?}");
     Destination {
         id: destination["id"]
             .as_str()
@@ -930,6 +975,7 @@ fn value_to_destination(destination: &Map<String, Value>) -> Destination {
             .as_str()
             .map(ToString::to_string)
             .unwrap(),
+        forward_query_parameters: destination["forwardQueryParameters"].as_bool().unwrap(),
     }
 }
 

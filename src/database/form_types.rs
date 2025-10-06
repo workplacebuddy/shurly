@@ -46,6 +46,11 @@ pub struct CreateDestinationValues<'a> {
 
     /// Make the destination as permanent
     pub is_permanent: &'a bool,
+
+    /// Should the query parameters of the root endpoint be forwarded to the destination?
+    ///
+    /// Only query parameters that are _not_ present in the `url` will be added
+    pub forward_query_parameters: &'a bool,
 }
 
 /// Values to update an Destination
@@ -58,6 +63,11 @@ pub struct UpdateDestinationValues<'a> {
     /// Can only be set to `false` if the destination already has `is_permanent=true`, otherwise
     /// only `true` is valid
     pub is_permanent: Option<&'a bool>,
+
+    /// Should the query parameters of the root endpoint be forwarded to the destination?
+    ///
+    /// Only query parameters that are _not_ present in the `url` will be added
+    pub forward_query_parameters: Option<&'a bool>,
 }
 
 /// Values to create an Alias

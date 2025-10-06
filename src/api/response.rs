@@ -77,10 +77,10 @@ where
 #[derive(Debug)]
 pub struct Error {
     /// The failed status code
-    status_code: StatusCode,
+    pub status_code: StatusCode,
 
     /// The error message
-    message: String,
+    pub message: String,
 
     /// An optional error description
     description: Option<String>,

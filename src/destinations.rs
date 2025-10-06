@@ -22,6 +22,11 @@ pub struct Destination {
     /// Type of destination
     pub is_permanent: bool,
 
+    /// Should the query parameters of the root endpoint be forwarded to the destination?
+    ///
+    /// Only query parameters that are _not_ present in the `url` will be added
+    pub forward_query_parameters: bool,
+
     /// Creation date
     pub created_at: NaiveDateTime,
 

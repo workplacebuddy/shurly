@@ -51,6 +51,11 @@ pub struct DestinationResponse {
     /// Type of destination
     pub is_permanent: bool,
 
+    /// Should the query parameters of the root endpoint be forwarded to the destination?
+    ///
+    /// Only query parameters that are _not_ present in the `url` will be added
+    pub forward_query_parameters: bool,
+
     /// Creation date
     pub created_at: NaiveDateTime,
 
@@ -78,6 +83,7 @@ impl DestinationResponse {
             slug: destination.slug,
             url: destination.url,
             is_permanent: destination.is_permanent,
+            forward_query_parameters: destination.forward_query_parameters,
             created_at: destination.created_at,
             updated_at: destination.updated_at,
             aliases: aliases.map(AliasResponse::from_alias_multiple),
@@ -349,6 +355,11 @@ pub struct CreateDestinationForm {
 
     /// Type to create a destination with
     is_permanent: Option<bool>,
+
+    /// Should the query parameters of the root endpoint be forwarded to the destination?
+    ///
+    /// Only query parameters that are _not_ present in the `url` will be added
+    forward_query_parameters: Option<bool>,
 }
 
 /// Create a destination based on the [`CreateDestinationForm`](CreateDestinationForm) form
@@ -392,6 +403,7 @@ pub async fn create(
             slug: &slug,
             url: &url,
             is_permanent: &form.is_permanent.unwrap_or(false),
+            forward_query_parameters: &form.forward_query_parameters.unwrap_or(false),
         };
 
         let destination = database
@@ -424,6 +436,11 @@ pub struct UpdateDestinationForm {
     /// Can only be set to `false` if the destination already has `is_permanent=true`, otherwise
     /// only `true` is valid
     is_permanent: Option<bool>,
+
+    /// Should the query parameters of the root endpoint be forwarded to the destination?
+    ///
+    /// Only query parameters that are _not_ present in the `url` will be added
+    forward_query_parameters: Option<bool>,
 }
 
 /// Update a destinations based on the [`UpdateDestinationForm`](UpdateDestinationForm) form
@@ -466,6 +483,7 @@ pub async fn update(
     let values = UpdateDestinationValues {
         url,
         is_permanent: form.is_permanent.as_ref(),
+        forward_query_parameters: form.forward_query_parameters.as_ref(),
     };
 
     let updated_destination = database

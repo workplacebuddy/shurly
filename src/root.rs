@@ -2,6 +2,9 @@
 //!
 //! The most important part of Shurly, the actual redirect logic
 
+use std::borrow::Cow;
+use std::collections::HashSet;
+
 use axum::http::StatusCode;
 use axum::http::Uri;
 use axum::response::Html;
@@ -12,6 +15,8 @@ use axum_extra::TypedHeader;
 use percent_encoding::percent_decode_str;
 use unicode_normalization::UnicodeNormalization;
 
+use crate::api::parse_url;
+use crate::api::Error;
 use crate::client_ip::ClientIp;
 use crate::database::fetch_destination_by_slug;
 use crate::database::Database;
@@ -33,9 +38,9 @@ pub async fn root(
     client_ip: Option<ClientIp>,
     user_agent: Option<TypedHeader<UserAgent>>,
     Extension(database): Extension<Database>,
-    uri: Uri,
+    incoming_uri: Uri,
 ) -> Result<Redirect, (StatusCode, Html<String>)> {
-    let slug = uri.path().trim_matches('/');
+    let slug = incoming_uri.path().trim_matches('/');
     let slug = url_decode_slug(slug)?;
 
     tracing::debug!("Looking for slug: /{slug}");
@@ -67,10 +72,50 @@ pub async fn root(
         } else {
             tracing::debug!(r#"Slug "{slug}" redirecting to: {}"#, destination.url);
 
+            let mut location_url = destination.url.clone();
+
+            if destination.forward_query_parameters
+                && let Some(path_and_query) = incoming_uri.path_and_query()
+            {
+                let location = {
+                    let mut location_parsed = parse_url(&location_url).map_err(map_api_error)?;
+
+                    let location_query_param_names = location_parsed
+                        .query_pairs()
+                        .map(|(name, _)| Cow::Owned(name.to_string()))
+                        .collect::<HashSet<Cow<str>>>();
+
+                    let mut location_query_pairs = location_parsed.query_pairs_mut();
+
+                    let incoming_parsed =
+                        parse_url(format!("https://www.example.com{path_and_query}"))
+                            .map_err(map_api_error)?;
+
+                    let incoming_query_params = incoming_parsed.query_pairs();
+
+                    for (key, value) in incoming_query_params {
+                        // skip query params that are already in the location, params from the
+                        // location are leading. overwriting this could result is problematic
+                        // redirects. adding query params might already be an issue in some cases,
+                        // the redirect location should be able to handle the extra params, this is
+                        // why the option to append them is behind an option per destination.
+                        if !location_query_param_names.contains(&key) {
+                            location_query_pairs.append_pair(&key, &value);
+                        }
+                    }
+
+                    drop(location_query_pairs);
+
+                    location_parsed
+                };
+
+                location_url = location.into();
+            }
+
             if destination.is_permanent {
-                Ok(Redirect::permanent(&destination.url))
+                Ok(Redirect::permanent(&location_url))
             } else {
-                Ok(Redirect::temporary(&destination.url))
+                Ok(Redirect::temporary(&location_url))
             }
         }
     } else {
@@ -90,6 +135,11 @@ where
         StatusCode::INTERNAL_SERVER_ERROR,
         render_error_template(&err.to_string()),
     )
+}
+
+/// Utility function for mapping any API error into a HTML response.
+fn map_api_error(err: Error) -> (StatusCode, Html<String>) {
+    (err.status_code, render_error_template(&err.message))
 }
 
 /// URL decode slug
