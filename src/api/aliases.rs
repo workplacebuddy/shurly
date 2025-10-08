@@ -11,10 +11,10 @@ use uuid::Uuid;
 use crate::aliases::Alias;
 use crate::api::parse_slug;
 use crate::api::utils::fetch_destination;
-use crate::database::fetch_destination_by_slug;
 use crate::database::AuditEntry;
 use crate::database::CreateAliasValues;
 use crate::database::Database;
+use crate::database::fetch_destination_by_slug;
 use crate::users::Role;
 
 use super::AuditTrail;

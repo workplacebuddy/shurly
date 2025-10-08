@@ -1,16 +1,16 @@
 //! API request helpers
 
-use axum::extract::rejection::JsonRejection;
-use axum::extract::rejection::PathRejection;
 use axum::extract::FromRequest;
 use axum::extract::FromRequestParts;
 use axum::extract::Json;
 use axum::extract::Path;
 use axum::extract::Query;
 use axum::extract::Request;
+use axum::extract::rejection::JsonRejection;
+use axum::extract::rejection::PathRejection;
 use axum::http::request::Parts;
-use serde::de::DeserializeOwned;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use unicode_normalization::UnicodeNormalization;
 use url::Url;
 
@@ -181,7 +181,7 @@ where
                     "notes" => include_parameters.notes = true,
                     unknown => {
                         return Err(Error::bad_request("Unknown include parameter")
-                            .with_description(format!("Unknown include parameter: {unknown}")))
+                            .with_description(format!("Unknown include parameter: {unknown}")));
                     }
                 }
             }

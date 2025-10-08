@@ -5,21 +5,21 @@
 use std::borrow::Cow;
 use std::collections::HashSet;
 
+use axum::Extension;
 use axum::http::StatusCode;
 use axum::http::Uri;
 use axum::response::Html;
 use axum::response::Redirect;
-use axum::Extension;
-use axum_extra::headers::UserAgent;
 use axum_extra::TypedHeader;
+use axum_extra::headers::UserAgent;
 use percent_encoding::percent_decode_str;
 use unicode_normalization::UnicodeNormalization;
 
-use crate::api::parse_url;
 use crate::api::Error;
+use crate::api::parse_url;
 use crate::client_ip::ClientIp;
-use crate::database::fetch_destination_by_slug;
 use crate::database::Database;
+use crate::database::fetch_destination_by_slug;
 
 /// Template for 404 page
 const NOT_FOUND: &str = include_str!("pages/404.html");

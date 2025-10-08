@@ -15,23 +15,23 @@ use crate::api::aliases::AliasResponse;
 use crate::api::notes::NoteResponse;
 use crate::api::request::IncludeParameters;
 use crate::api::utils::fetch_destination;
-use crate::database::fetch_destination_by_slug;
 use crate::database::AuditEntry;
 use crate::database::CreateDestinationValues;
 use crate::database::Database;
 use crate::database::UpdateDestinationValues;
+use crate::database::fetch_destination_by_slug;
 use crate::destinations::Destination;
 use crate::notes::Note;
 use crate::users::Role;
 
-use super::parse_slug;
-use super::parse_url;
 use super::AuditTrail;
 use super::CurrentUser;
 use super::Error;
 use super::Form;
 use super::PathParameters;
 use super::Success;
+use super::parse_slug;
+use super::parse_url;
 
 /// Destination response going to the user
 ///
