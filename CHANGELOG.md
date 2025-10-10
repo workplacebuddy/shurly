@@ -4,6 +4,20 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.4.0
+
+### Features
+
+-   Add aliases to destinations
+-   Add query param to destination endpoint to include aliases and/or notes
+-   Add option to destination to forward query parameters
+
+### Fixes
+
+-   Normalize the incoming slugs in root to NFC form
+-   Upgrade all dependencies to their latest versions
+-   Update MSRV to 1.88
+
 ## Version 0.3.6
 
 ### Fixes
