@@ -43,7 +43,7 @@ impl JwtKeys {
 }
 
 /// The JWT claims to identifies a user
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct Claims {
     /// The user ID
     sub: Uuid,
