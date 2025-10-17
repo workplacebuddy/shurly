@@ -36,4 +36,9 @@ async fn test_destination_update_is_permanent(pool: sqlx::PgPool) {
             .await;
     assert_eq!(StatusCode::BAD_REQUEST, status_code);
     assert_eq!(Some("Permanent URLs can not be updated".to_string()), error);
+
+    // check root redirect, it did not change
+    let (status_code, location, _) = helper::root(&mut app, slug).await;
+    assert_eq!(StatusCode::PERMANENT_REDIRECT, status_code);
+    assert_eq!(Some(url.to_string()), location);
 }

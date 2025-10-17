@@ -33,6 +33,9 @@ async fn test_destination_create(pool: sqlx::PgPool) {
     assert_eq!(StatusCode::OK, status_code);
     assert!(destination.is_some());
 
+    let (status_code, _, _) = helper::root(&mut app, valid_empty_slug).await;
+    assert_eq!(StatusCode::TEMPORARY_REDIRECT, status_code);
+
     // create destination with slug
     let (status_code, destination, _) =
         helper::maybe_create_destination(&mut app, &access_token, valid_non_empty_slug, url).await;
@@ -45,6 +48,9 @@ async fn test_destination_create(pool: sqlx::PgPool) {
         helper::single_destination(&mut app, &access_token, &valid_non_empty_destination_id).await;
     assert_eq!(StatusCode::OK, status_code);
     assert!(destination.is_some());
+
+    let (status_code, _, _) = helper::root(&mut app, valid_non_empty_slug).await;
+    assert_eq!(StatusCode::TEMPORARY_REDIRECT, status_code);
 
     // create destination with slash slug
     let (status_code, destination, _) =
@@ -59,6 +65,9 @@ async fn test_destination_create(pool: sqlx::PgPool) {
     assert_eq!(StatusCode::OK, status_code);
     assert!(destination.is_some());
     assert_eq!(valid_with_slash_slug_normalized, &destination.unwrap().slug);
+
+    let (status_code, _, _) = helper::root(&mut app, valid_with_slash_slug).await;
+    assert_eq!(StatusCode::TEMPORARY_REDIRECT, status_code);
 
     // create destination with url encoded slug
     let (status_code, destination, _) =
@@ -113,6 +122,9 @@ async fn test_destination_create_api_prefix(pool: sqlx::PgPool) {
         helper::maybe_create_destination(&mut app, &access_token, valid_api_prefix, url).await;
     assert_eq!(StatusCode::CREATED, status_code);
     assert!(destination.is_some());
+
+    let (status_code, _, _) = helper::root(&mut app, valid_api_prefix).await;
+    assert_eq!(StatusCode::TEMPORARY_REDIRECT, status_code);
 
     // create destination with invalid `api/` prefix
     let (status_code, destination, _) =

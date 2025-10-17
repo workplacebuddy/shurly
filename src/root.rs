@@ -19,7 +19,6 @@ use crate::api::Error;
 use crate::api::parse_url;
 use crate::client_ip::ClientIp;
 use crate::database::Database;
-use crate::database::fetch_destination_by_slug;
 
 /// Template for 404 page
 const NOT_FOUND: &str = include_str!("pages/404.html");
@@ -45,11 +44,12 @@ pub async fn root(
 
     tracing::debug!("Looking for slug: /{slug}");
 
-    let slug_found_summary = fetch_destination_by_slug(&database, &slug)
+    let slug_found_summary = database
+        .fetch_cached_destination_by_slug(&slug)
         .await
         .map_err(internal_error)?;
 
-    if let Some(slug_found_summary) = slug_found_summary {
+    if let Some(slug_found_summary) = &*slug_found_summary {
         let destination = slug_found_summary.destination();
 
         database

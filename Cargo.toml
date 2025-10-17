@@ -63,6 +63,14 @@ features = [
     "rust_crypto",
 ]
 
+
+[dependencies.moka]
+version = "0.12.11"
+default-features = false
+features = [
+    "future",
+]
+
 [dependencies.rand_core]
 version = "0.9.3"
 default-features = false

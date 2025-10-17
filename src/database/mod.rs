@@ -2,8 +2,11 @@
 
 use core::fmt;
 use std::net::IpAddr;
+use std::ops::Deref;
+use std::sync::Arc;
 use std::time::Duration;
 
+use moka::future::Cache;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::types::ipnetwork::IpNetwork;
@@ -58,6 +61,9 @@ pub enum Config {
 pub struct Database {
     /// Pool of connections
     connection_pool: PgPool,
+
+    /// Cache for the slug found summaries
+    slug_found_cache: SlugFoundCache,
 }
 
 impl Database {
@@ -97,7 +103,10 @@ impl Database {
             panic!("Migrations could not run: {err}");
         }
 
-        Self { connection_pool }
+        Self {
+            connection_pool,
+            slug_found_cache: SlugFoundCache::default(),
+        }
     }
 }
 
@@ -415,6 +424,8 @@ impl Database {
         .await
         .map_err(connection_error)?;
 
+        self.slug_found_cache.invalidate(values.slug).await;
+
         Ok(destination)
     }
 
@@ -446,6 +457,8 @@ impl Database {
         .await
         .map_err(connection_error)?;
 
+        self.slug_found_cache.invalidate(&destination.slug).await;
+
         Ok(updated_destination)
     }
 
@@ -462,6 +475,8 @@ impl Database {
         .execute(&self.connection_pool)
         .await
         .map_err(connection_error)?;
+
+        self.slug_found_cache.invalidate(&destination.slug).await;
 
         Ok(())
     }
@@ -584,6 +599,8 @@ impl Database {
         .await
         .map_err(connection_error)?;
 
+        self.slug_found_cache.invalidate(values.slug).await;
+
         Ok(alias)
     }
 
@@ -600,6 +617,8 @@ impl Database {
         .execute(&self.connection_pool)
         .await
         .map_err(connection_error)?;
+
+        self.slug_found_cache.invalidate(&alias.slug).await;
 
         Ok(())
     }
@@ -821,6 +840,18 @@ impl Database {
 
         Ok(())
     }
+
+    /// Fetch (cached) destination from database by slug or alias slug
+    pub async fn fetch_cached_destination_by_slug(
+        &self,
+        slug: &str,
+    ) -> core::result::Result<Arc<Option<SlugFoundSummary>>, Arc<Error>> {
+        self.slug_found_cache
+            .try_get_with_by_ref(slug, async {
+                fetch_destination_by_slug(self, slug).await.map(Arc::new)
+            })
+            .await
+    }
 }
 
 /// Convert `SQLx` to storage connection error
@@ -870,6 +901,27 @@ impl SlugFoundSummary {
     /// Is the destination or alias deleted?
     pub fn is_deleted(&self) -> bool {
         matches!(self, Self::DestinationDeleted(..) | Self::AliasDeleted(..))
+    }
+}
+
+/// The default maximum capacity of the slug found cache
+const DEFAULT_CACHE_MAX_CAPACITY: u64 = 10_000;
+
+/// Cache for the slug found summaries
+#[derive(Clone)]
+struct SlugFoundCache(Cache<String, Arc<Option<SlugFoundSummary>>>);
+
+impl Default for SlugFoundCache {
+    fn default() -> Self {
+        Self(Cache::new(DEFAULT_CACHE_MAX_CAPACITY))
+    }
+}
+
+impl Deref for SlugFoundCache {
+    type Target = Cache<String, Arc<Option<SlugFoundSummary>>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
 }
 
