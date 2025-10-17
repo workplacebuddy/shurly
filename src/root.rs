@@ -20,6 +20,29 @@ use crate::api::parse_url;
 use crate::client_ip::ClientIp;
 use crate::database::Database;
 
+/// Name of the ref query param to enable referrer info
+const REF_QUERY_PARAM_ENV_VAR: &str = "REF_QUERY_PARAM";
+
+/// Name of the query param that sends the slug referrer
+///
+/// When `None` the query param is not included at all, it will never override an existing query
+/// param with the same name.
+#[derive(Clone)]
+pub struct IncludeRefQueryParam(Option<Cow<'static, str>>);
+
+impl IncludeRefQueryParam {
+    /// Create ref query param config from environment
+    pub fn from_env() -> Self {
+        if let Ok(value) = std::env::var(REF_QUERY_PARAM_ENV_VAR)
+            && !value.is_empty()
+        {
+            Self(Some(value.into()))
+        } else {
+            Self(None)
+        }
+    }
+}
+
 /// Template for 404 page
 const NOT_FOUND: &str = include_str!("pages/404.html");
 
@@ -37,6 +60,7 @@ pub async fn root(
     client_ip: Option<ClientIp>,
     user_agent: Option<TypedHeader<UserAgent>>,
     Extension(database): Extension<Database>,
+    Extension(IncludeRefQueryParam(include_ref_query_param)): Extension<IncludeRefQueryParam>,
     incoming_uri: Uri,
 ) -> Result<Redirect, (StatusCode, Html<String>)> {
     let slug = incoming_uri.path().trim_matches('/');
@@ -74,10 +98,9 @@ pub async fn root(
 
             let mut location_url = destination.url.clone();
 
-            if destination.forward_query_parameters
-                && let Some(path_and_query) = incoming_uri.path_and_query()
-            {
-                let location = {
+            if destination.forward_query_parameters || include_ref_query_param.is_some() {
+                let (added_query_params, location) = {
+                    let mut added_query_params = false;
                     let mut location_parsed = parse_url(&location_url).map_err(map_api_error)?;
 
                     let location_query_param_names = location_parsed
@@ -87,29 +110,46 @@ pub async fn root(
 
                     let mut location_query_pairs = location_parsed.query_pairs_mut();
 
-                    let incoming_parsed =
-                        parse_url(format!("https://www.example.com{path_and_query}"))
-                            .map_err(map_api_error)?;
+                    if destination.forward_query_parameters
+                        && let Some(path_and_query) = incoming_uri.path_and_query()
+                    {
+                        let incoming_parsed =
+                            parse_url(format!("https://www.example.com{path_and_query}"))
+                                .map_err(map_api_error)?;
 
-                    let incoming_query_params = incoming_parsed.query_pairs();
+                        let incoming_query_params = incoming_parsed.query_pairs();
 
-                    for (key, value) in incoming_query_params {
-                        // skip query params that are already in the location, params from the
-                        // location are leading. overwriting this could result is problematic
-                        // redirects. adding query params might already be an issue in some cases,
-                        // the redirect location should be able to handle the extra params, this is
-                        // why the option to append them is behind an option per destination.
-                        if !location_query_param_names.contains(&key) {
-                            location_query_pairs.append_pair(&key, &value);
+                        for (key, value) in incoming_query_params {
+                            // skip query params that are already in the location, params from the
+                            // location are leading. overwriting this could result is problematic
+                            // redirects. adding query params might already be an issue in some cases,
+                            // the redirect location should be able to handle the extra params, this is
+                            // why the option to append them is behind an option per destination.
+                            if !location_query_param_names.contains(&key) {
+                                location_query_pairs.append_pair(&key, &value);
+                                added_query_params = true;
+                            }
                         }
+                    }
+
+                    if let Some(ref_query_param) = include_ref_query_param
+                        && !location_query_param_names.contains(&ref_query_param)
+                    {
+                        location_query_pairs.append_pair(&ref_query_param, &slug);
+                        added_query_params = true;
                     }
 
                     drop(location_query_pairs);
 
-                    location_parsed
+                    (added_query_params, location_parsed)
                 };
 
-                location_url = location.into();
+                location_url = if added_query_params {
+                    // this adds a `?` for empty query params
+                    location.into()
+                } else {
+                    destination.url.clone()
+                };
             }
 
             if destination.is_permanent {

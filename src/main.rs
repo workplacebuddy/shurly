@@ -21,6 +21,7 @@ use crate::api::JwtKeys;
 use crate::api::router;
 use crate::database::Database;
 use crate::database::DatabaseConfig;
+use crate::root::IncludeRefQueryParam;
 use crate::users::ensure_initial_user;
 use crate::utils::env_var_or_else;
 
@@ -92,6 +93,7 @@ fn create_router(database: Database) -> Router {
         .layer(TraceLayer::new_for_http())
         .layer(Extension(database))
         .layer(Extension(jwt_keys))
+        .layer(Extension(IncludeRefQueryParam::from_env()))
 }
 
 /// Setup the environment (variables) in which Shurly runs
