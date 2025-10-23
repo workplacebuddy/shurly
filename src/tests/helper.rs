@@ -1,3 +1,6 @@
+use std::ops::Deref;
+use std::ops::DerefMut;
+
 use axum::Router;
 use axum::body::Body;
 use axum::body::Bytes;
@@ -14,6 +17,7 @@ use tower::Service;
 use uuid::Uuid;
 
 use crate::database::DatabaseConfig;
+use crate::database::DatabaseShutdownHandler;
 use crate::setup_app;
 
 /// Test helper version of User struct
@@ -57,10 +61,40 @@ pub struct Error {
     pub description: Option<String>,
 }
 
+/// Wrapper for the Axum router
+pub(super) struct RouterWrapper {
+    /// Database shutdown handler
+    database_shutdown_handler: DatabaseShutdownHandler,
+
+    /// The Axum router
+    router: Router,
+}
+
+impl Drop for RouterWrapper {
+    fn drop(&mut self) {
+        // initiate the page hit collector shutdown
+        self.database_shutdown_handler.shutdown();
+    }
+}
+
+impl Deref for RouterWrapper {
+    type Target = Router;
+
+    fn deref(&self) -> &Self::Target {
+        &self.router
+    }
+}
+
+impl DerefMut for RouterWrapper {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.router
+    }
+}
+
 /// Setup the Shurly app
 ///
 /// Inject some environment variables to match our tests
-pub async fn setup_test_app(pool: sqlx::PgPool) -> Router {
+pub async fn setup_test_app(pool: sqlx::PgPool) -> RouterWrapper {
     #[allow(unsafe_code)]
     unsafe {
         std::env::set_var("INITIAL_USERNAME", "admin");
@@ -68,9 +102,19 @@ pub async fn setup_test_app(pool: sqlx::PgPool) -> Router {
         std::env::set_var("JWT_SECRET", "verysecret");
     }
 
-    setup_app(DatabaseConfig::ExistingConnection(pool))
-        .await
-        .unwrap()
+    let database_shutdown_handler = DatabaseShutdownHandler::default();
+
+    let app = setup_app(
+        DatabaseConfig::ExistingConnection(pool),
+        database_shutdown_handler.clone(),
+    )
+    .await
+    .unwrap();
+
+    RouterWrapper {
+        database_shutdown_handler,
+        router: app,
+    }
 }
 
 pub async fn root_with_query(

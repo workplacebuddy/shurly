@@ -6,10 +6,16 @@ use std::ops::Deref;
 use std::sync::Arc;
 use std::time::Duration;
 
+use chrono::DateTime;
+use chrono::NaiveDateTime;
+use chrono::Timelike as _;
+use chrono::Utc;
 use moka::future::Cache;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::types::ipnetwork::IpNetwork;
+use tokio::sync::mpsc;
+use tokio_util::sync::CancellationToken;
 use uuid::Uuid;
 
 pub use Config as DatabaseConfig;
@@ -32,6 +38,9 @@ mod types;
 pub enum Error {
     /// A connection error with the storage
     Connection(String),
+
+    /// A problem scheduling a page hit save
+    PageHitScheduling(String),
 }
 
 impl std::error::Error for Error {}
@@ -40,6 +49,9 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Error::Connection(error) => write!(f, "Connection error: {error}"),
+            Error::PageHitScheduling(error) => {
+                write!(f, "Page hit scheduling error: {error}")
+            }
         }
     }
 }
@@ -56,6 +68,43 @@ pub enum Config {
     ExistingConnection(PgPool),
 }
 
+/// Handler to initiate database shutdown
+///
+/// Only stops the page hit collector
+#[derive(Default, Clone)]
+pub struct DatabaseShutdownHandler {
+    /// Internal cancellation token to see if shutdown is initiated
+    is_shutting_token: CancellationToken,
+
+    /// Internal cancellation token to see if shutdown is completed
+    is_shutdown_completed_token: CancellationToken,
+}
+
+impl DatabaseShutdownHandler {
+    /// Trigger the shutdown
+    pub fn shutdown(&self) {
+        self.is_shutting_token.cancel();
+    }
+
+    /// Make the shutdown as complete
+    fn complete(&self) {
+        self.is_shutdown_completed_token.cancel();
+    }
+
+    /// Is the shutdown completed
+    pub async fn completed(&self) {
+        self.is_shutdown_completed_token.cancelled().await;
+    }
+}
+
+/// The capacity of the page hit collecto channel
+///
+/// This influences the performance of the root endpoint, it's the buffer for how many page hits
+/// can be scheduled before the page hits actually need to be stored. Bursts of thousands of
+/// requests will saturate this and later will requests will need to wait a bit, making the
+/// database connection the slow factor in those requests.
+const PAGE_HIT_COLLECTOR_CHANNEL_CAPACITY: usize = 10_000;
+
 /// Postgres storage
 #[derive(Clone)]
 pub struct Database {
@@ -64,14 +113,35 @@ pub struct Database {
 
     /// Cache for the slug found summaries
     slug_found_cache: SlugFoundCache,
+
+    /// Channel sender to schedule page hit saves
+    page_hit_sender: mpsc::Sender<PageHitInformation>,
+}
+
+/// Page hit information
+struct PageHitInformation {
+    /// The destination ID
+    destination_id: Uuid,
+
+    /// The alias ID
+    alias_id: Option<Uuid>,
+
+    /// The IP address
+    ip_address: Option<IpAddr>,
+
+    /// The user agent
+    user_agent: Option<String>,
+
+    /// The moment this page hit happened
+    when: DateTime<Utc>,
 }
 
 impl Database {
     /// Create a new Postgres storage
-    pub async fn from_config(config: Config) -> Self {
+    pub async fn from_config(config: Config, shutdown_handler: DatabaseShutdownHandler) -> Self {
         match config {
-            Config::DetectConfig => Self::new().await,
-            Config::ExistingConnection(pool) => Self::new_with_pool(pool).await,
+            Config::DetectConfig => Self::new(shutdown_handler).await,
+            Config::ExistingConnection(pool) => Self::new_with_pool(pool, shutdown_handler).await,
         }
     }
 
@@ -80,7 +150,7 @@ impl Database {
     /// Use the `DATABASE_URL` environment variable
     ///
     /// Migrations will be run
-    async fn new() -> Self {
+    async fn new(shutdown_handler: DatabaseShutdownHandler) -> Self {
         let database_connection_string = std::env::var("DATABASE_URL").expect("Valid DATABASE_URL");
 
         let connection_pool = PgPoolOptions::new()
@@ -90,23 +160,59 @@ impl Database {
             .await
             .expect("Valid connection");
 
-        Self::new_with_pool(connection_pool).await
+        Self::new_with_pool(connection_pool, shutdown_handler).await
     }
 
     /// Create Postgres storage with existing pool
     ///
     /// Migrations will be run
-    async fn new_with_pool(connection_pool: PgPool) -> Self {
+    async fn new_with_pool(
+        connection_pool: PgPool,
+        shutdown_handler: DatabaseShutdownHandler,
+    ) -> Self {
         let migration_result = MIGRATOR.run(&connection_pool).await;
 
         if let Err(err) = migration_result {
             panic!("Migrations could not run: {err}");
         }
 
-        Self {
+        let (page_hit_sender, mut page_hit_receiver) =
+            mpsc::channel(PAGE_HIT_COLLECTOR_CHANNEL_CAPACITY);
+
+        let database = Self {
             connection_pool,
             slug_found_cache: SlugFoundCache::default(),
-        }
+            page_hit_sender,
+        };
+
+        let database_ = database.clone();
+        tokio::spawn(async move {
+            loop {
+                tokio::select! {
+                    biased;
+
+                    page_hit_info = page_hit_receiver.recv() => {
+                        if let Some(page_hit_info) = page_hit_info {
+                            if let Err(err) = database_.save_hit(page_hit_info).await {
+                                tracing::error!("Failed to save page hit: {err}");
+                            }
+                        } else {
+                            tracing::warn!("Page hit receiver channel closed");
+                        }
+                    }
+
+                    () = shutdown_handler.is_shutting_token.cancelled() => {
+                        tracing::trace!("Page hit channel cancellled");
+
+                        // the biased select has handled all remaining page hits
+                        shutdown_handler.complete();
+                        break;
+                    }
+                }
+            }
+        });
+
+        database
     }
 }
 
@@ -760,26 +866,42 @@ impl Database {
         Ok(())
     }
 
-    /// Save a hit on a destination
-    pub async fn save_hit(
+    /// Schedule saving a hit in the background
+    pub async fn schedule_save_hit(
         &self,
-        destination: &Destination,
-        alias: Option<&Alias>,
-        ip_address: Option<&IpAddr>,
-        user_agent: Option<&String>,
+        destination_id: Uuid,
+        alias_id: Option<Uuid>,
+        ip_address: Option<IpAddr>,
+        user_agent: Option<String>,
     ) -> Result<()> {
+        self.page_hit_sender
+            .send(PageHitInformation {
+                destination_id,
+                alias_id,
+                ip_address,
+                user_agent,
+                // capture the moment the page hit happened, do no rely on the database to
+                // set this when the record is inserted, it could be delayed back pressure
+                when: Utc::now(),
+            })
+            .await
+            .map_err(|err| Error::PageHitScheduling(format!("Could not schedule page hit: {err}")))
+    }
+
+    /// Save a hit on a destination
+    async fn save_hit(&self, page_hit: PageHitInformation) -> Result<()> {
+        #[expect(deprecated)] // sqlx expect a `NaiveDateTime`
         sqlx::query!(
             r#"
-            INSERT INTO hits (id, destination_id, alias_id, ip_address, user_agent)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO hits (id, destination_id, alias_id, ip_address, user_agent, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
             "#,
             Uuid::new_v4(),
-            destination.id,
-            alias.map(|a| a.id),
-            ip_address
-                .map(ToString::to_string)
-                .and_then(|ip| ip.parse::<IpNetwork>().ok()),
-            user_agent,
+            page_hit.destination_id,
+            page_hit.alias_id,
+            page_hit.ip_address.map(IpNetwork::from),
+            page_hit.user_agent,
+            NaiveDateTime::from_timestamp(page_hit.when.timestamp(), page_hit.when.nanosecond(),),
         )
         .execute(&self.connection_pool)
         .await

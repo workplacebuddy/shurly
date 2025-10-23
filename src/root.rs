@@ -76,15 +76,17 @@ pub async fn root(
     if let Some(slug_found_summary) = &*slug_found_summary {
         let destination = slug_found_summary.destination();
 
-        database
-            .save_hit(
-                destination,
-                slug_found_summary.alias(),
-                client_ip.map(|i| i.ip_address.0).as_ref(),
-                user_agent.map(|i| i.0.to_string()).as_ref(),
+        if let Err(err) = database
+            .schedule_save_hit(
+                destination.id,
+                slug_found_summary.alias().map(|a| a.id),
+                client_ip.map(|i| i.ip_address.0),
+                user_agent.map(|ua| ua.to_string()),
             )
             .await
-            .map_err(internal_error)?;
+        {
+            tracing::error!("Failed to schedule hit for slug \"{slug}\": {err}");
+        }
 
         if slug_found_summary.is_deleted() {
             tracing::debug!(r#"Slug "{slug}" no longer exists"#);

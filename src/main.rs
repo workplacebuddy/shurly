@@ -21,6 +21,7 @@ use crate::api::JwtKeys;
 use crate::api::router;
 use crate::database::Database;
 use crate::database::DatabaseConfig;
+use crate::database::DatabaseShutdownHandler;
 use crate::root::IncludeRefQueryParam;
 use crate::users::ensure_initial_user;
 use crate::utils::env_var_or_else;
@@ -50,19 +51,31 @@ async fn main() -> Result<()> {
     setup_environment();
     setup_tracing();
 
-    let app = setup_app(DatabaseConfig::DetectConfig).await?;
+    let database_shutdown_handler = DatabaseShutdownHandler::default();
+
+    let app = setup_app(
+        DatabaseConfig::DetectConfig,
+        database_shutdown_handler.clone(),
+    )
+    .await?;
 
     let address = setup_address()?;
     tracing::info!("Listening on {}", address);
 
     let listener = TcpListener::bind(address).await?;
 
+    let database_shutdown_handler_ = database_shutdown_handler.clone();
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
-    .with_graceful_shutdown(graceful_shutdown::handler())
+    .with_graceful_shutdown(async move {
+        graceful_shutdown::handler().await;
+        database_shutdown_handler_.shutdown();
+    })
     .await?;
+
+    database_shutdown_handler.completed().await;
 
     Ok(())
 }
@@ -74,8 +87,11 @@ async fn main() -> Result<()> {
 /// Will return `Err` if any of its dependencies fail to load:
 /// - Database connection
 /// - Initial user setup
-pub async fn setup_app(config: DatabaseConfig) -> Result<Router> {
-    let database = Database::from_config(config).await;
+pub async fn setup_app(
+    config: DatabaseConfig,
+    database_shutdown_handler: DatabaseShutdownHandler,
+) -> Result<Router> {
+    let database = Database::from_config(config, database_shutdown_handler).await;
 
     ensure_initial_user(&database).await?;
 
