@@ -112,6 +112,10 @@ features = [
     "signal",
 ]
 
+[dependencies.tokio-util]
+version = "0.7.16"
+default-features = false
+
 [dependencies.tower]
 version = "0.5.2"
 default-features = false
