@@ -4,6 +4,19 @@
 
 > Shurly, this is a URL shortener with API management
 
+## Version 0.4.1
+
+### Features
+
+-   Add option to include a query param to all redirects with slug
+-   Make root endpoint database call free: moooooaaaar speeeeeeed!
+    -   Add slug found cache for root hits
+    -   Move saving page hits to the background
+
+### Fixes
+
+-   Upgrade all dependencies to their latest versions
+
 ## Version 0.4.0
 
 ### Features
