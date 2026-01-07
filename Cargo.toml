@@ -144,7 +144,7 @@ features = [
 ]
 
 [dependencies.url]
-version = "2.5.7"
+version = "2.5.8"
 default-features = false
 
 [dependencies.uuid]
