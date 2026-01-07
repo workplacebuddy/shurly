@@ -57,7 +57,7 @@ version = "0.15.7"
 default-features = false
 
 [dependencies.jsonwebtoken]
-version = "10.1.0"
+version = "10.2.0"
 default-features = false
 features = [
     "rust_crypto",
