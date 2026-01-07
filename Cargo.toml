@@ -24,7 +24,7 @@ features = [
 ]
 
 [dependencies.axum]
-version = "0.8.6"
+version = "0.8.8"
 default-features = false
 features = [
     "form",
