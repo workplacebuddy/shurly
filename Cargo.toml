@@ -113,7 +113,7 @@ features = [
 ]
 
 [dependencies.tokio-util]
-version = "0.7.16"
+version = "0.7.18"
 default-features = false
 
 [dependencies.tower]
