@@ -74,13 +74,6 @@ features = [
     "future",
 ]
 
-[dependencies.rand_core]
-version = "0.9.3"
-default-features = false
-features = [
-    "std",
-]
-
 [dependencies.serde]
 version = "1.0.228"
 default-features = false
